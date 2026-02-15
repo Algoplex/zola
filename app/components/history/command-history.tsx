@@ -372,18 +372,18 @@ export function CommandHistory({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [hoveredChatId, setHoveredChatId] = useState<string | null>(null)
-  const [isPreviewPanelHovered, setIsPreviewPanelHovered] = useState(false)
   const [commandValue, setCommandValue] = useState("")
   const { messages, isLoading, error, fetchPreview, clearPreview } =
     useChatPreview()
 
-  if (isOpen && !hasPrefetchedRef.current) {
+  useEffect(() => {
+    if (!isOpen || hasPrefetchedRef.current) return
     const recentChats = chatHistory.slice(0, 10)
     recentChats.forEach((chat) => {
       router.prefetch(`/c/${chat.id}`)
     })
     hasPrefetchedRef.current = true
-  }
+  }, [chatHistory, isOpen, router])
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
@@ -396,7 +396,6 @@ export function CommandHistory({
       setDeletingId(null)
       setSelectedChatId(null)
       setHoveredChatId(null)
-      setIsPreviewPanelHovered(false)
       clearPreview()
       hasPrefetchedRef.current = false
     } else {
@@ -447,18 +446,10 @@ export function CommandHistory({
   }, [isOpen, selectFirstVisible])
 
   const handlePreviewHover = useCallback(
-    (isHovering: boolean) => {
+    (_isHovering: boolean) => {
       if (!preferences.showConversationPreviews) return
-
-      setIsPreviewPanelHovered(isHovering)
-
-      // Only clear the hovered chat if we're not hovering the preview panel
-      // and there are already loaded messages
-      if (!isHovering && !hoveredChatId) {
-        setHoveredChatId(null)
-      }
     },
-    [preferences.showConversationPreviews, hoveredChatId]
+    [preferences.showConversationPreviews]
   )
 
   const handleEdit = useCallback((chat: Chats) => {
@@ -532,6 +523,11 @@ export function CommandHistory({
     return [...pinnedChats, ...grouped]
   }, [filteredChat, groupedChats, pinnedChats, searchQuery])
 
+  const visibleChatValues = useMemo(
+    () => visibleChats.map(getChatValue),
+    [visibleChats, getChatValue]
+  )
+
   const firstVisibleChat = useMemo(
     () => visibleChats[0] || null,
     [visibleChats]
@@ -543,8 +539,7 @@ export function CommandHistory({
     }
   }, [firstVisibleChat, getChatValue, isOpen])
 
-  const activePreviewChatId =
-    hoveredChatId || (isPreviewPanelHovered ? hoveredChatId : null)
+  const activePreviewChatId = hoveredChatId
 
   const renderChatItem = useCallback(
     (chat: Chats) => {
@@ -560,6 +555,7 @@ export function CommandHistory({
         <CommandItem
           key={chat.id}
           value={itemValue}
+          style={{ contentVisibility: "auto", containIntrinsicSize: "52px" }}
           onSelect={() => {
             if (preferences.showConversationPreviews) {
               setSelectedChatId(chat.id)
@@ -674,12 +670,13 @@ export function CommandHistory({
 
             event.preventDefault()
 
-            const values = visibleChats.map(getChatValue)
-            const currentIndex = values.indexOf(commandValue)
+            const currentIndex = visibleChatValues.indexOf(commandValue)
             const nextIndex =
               event.key === "ArrowDown"
-                ? (currentIndex + 1 + values.length) % values.length
-                : (currentIndex - 1 + values.length) % values.length
+                ? (currentIndex + 1 + visibleChatValues.length) %
+                  visibleChatValues.length
+                : (currentIndex - 1 + visibleChatValues.length) %
+                  visibleChatValues.length
             const nextChat = visibleChats[nextIndex]
             if (!nextChat) return
 

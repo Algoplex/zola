@@ -31,7 +31,8 @@ async function withRetry<T>(
       if (
         !message.includes("connection") &&
         !message.includes("timeout") &&
-        !message.includes("econn")
+        !message.includes("econn") &&
+        !message.includes("enotfound")
       ) {
         throw error
       }

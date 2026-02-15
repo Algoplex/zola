@@ -8,7 +8,7 @@ import { useUserPreferences } from "@/lib/user-preference-store/provider"
 import { cn } from "@/lib/utils"
 import { type UIMessage } from "@ai-sdk/react"
 import { ArrowClockwise, Check, Copy } from "@phosphor-icons/react"
-import { useCallback, useRef } from "react"
+import { useCallback, useMemo, useRef } from "react"
 import { getSources } from "./get-sources"
 import { QuoteButton } from "./quote-button"
 import { Reasoning } from "./reasoning"
@@ -45,52 +45,63 @@ export function MessageAssistant({
   onQuote,
 }: MessageAssistantProps) {
   const { preferences } = useUserPreferences()
-  const sources = getSources(parts)
+  const sources = useMemo(() => getSources(parts), [parts])
 
   // Filter for tool invocation parts (static tools have type like "tool-toolName", dynamic has "dynamic-tool")
   // Transform to backward-compatible format with toolInvocation wrapper for v5-style access
-  const toolInvocationParts = parts
-    ?.filter(
-      (part) => part.type.startsWith("tool-") || part.type === "dynamic-tool"
-    )
-    .map((part) => ({ toolInvocation: part as any }))
+  const toolInvocationParts = useMemo(() => {
+    return parts
+      ?.filter(
+        (part) => part.type.startsWith("tool-") || part.type === "dynamic-tool"
+      )
+      .map((part) => ({ toolInvocation: part as any }))
+  }, [parts])
 
   // Find reasoning part - in v6 it uses "text" property instead of "reasoningText"
-  const reasoningParts = parts?.find((part) => part.type === "reasoning")
+  const reasoningParts = useMemo(
+    () => parts?.find((part) => part.type === "reasoning"),
+    [parts]
+  )
   const contentNullOrEmpty = children === null || children === ""
   const isLastStreaming = status === "streaming" && isLast
 
   // For search images, we need to handle both static and dynamic tool types
-  const searchImageResults = (parts as any)
-    ?.filter(
-      (part: any) =>
-        (part.type.startsWith("tool-") || part.type === "dynamic-tool") &&
-        "toolInvocation" in part &&
-        part.toolInvocation?.state === "result" &&
-        part.toolInvocation?.toolName === "imageSearch"
-    )
-    .flatMap((part: any) => {
-        if (
-          "toolInvocation" in part &&
-          part.toolInvocation?.state === "result" &&
-          part.toolInvocation?.toolName === "imageSearch"
-        ) {
-          const result = part.toolInvocation.result
+  const searchImageResults = useMemo(() => {
+    return (
+      (parts as any)
+        ?.filter(
+          (part: any) =>
+            (part.type.startsWith("tool-") || part.type === "dynamic-tool") &&
+            "toolInvocation" in part &&
+            part.toolInvocation?.state === "result" &&
+            part.toolInvocation?.toolName === "imageSearch"
+        )
+        .flatMap((part: any) => {
           if (
-            result &&
-            typeof result === "object" &&
-            "content" in result &&
-            Array.isArray(result.content) &&
-            result.content[0] &&
-            typeof result.content[0] === "object" &&
-            "type" in result.content[0] &&
-            result.content[0].type === "images"
+            "toolInvocation" in part &&
+            part.toolInvocation?.state === "result" &&
+            part.toolInvocation?.toolName === "imageSearch"
           ) {
-            return (result.content[0] as { results?: unknown[] }).results ?? []
+            const result = part.toolInvocation.result
+            if (
+              result &&
+              typeof result === "object" &&
+              "content" in result &&
+              Array.isArray(result.content) &&
+              result.content[0] &&
+              typeof result.content[0] === "object" &&
+              "type" in result.content[0] &&
+              result.content[0].type === "images"
+            ) {
+              return (
+                (result.content[0] as { results?: unknown[] }).results ?? []
+              )
+            }
           }
-        }
-        return []
-      }) ?? []
+          return []
+        }) ?? []
+    )
+  }, [parts])
 
   const isQuoteEnabled = !preferences.multiModelEnabled
   const messageRef = useRef<HTMLDivElement>(null)
@@ -138,7 +149,11 @@ export function MessageAssistant({
           <SearchImages results={searchImageResults} />
         )}
 
-        {contentNullOrEmpty ? null : (
+        {contentNullOrEmpty ? null : status === "streaming" ? (
+          <div className="prose dark:prose-invert min-w-full whitespace-pre-wrap">
+            {children}
+          </div>
+        ) : (
           <MessageContent
             className={cn(
               "prose dark:prose-invert relative min-w-full bg-transparent p-0",

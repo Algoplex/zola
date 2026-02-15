@@ -3,8 +3,10 @@ import { cn } from "@/lib/utils"
 import { marked } from "marked"
 import { memo, useId, useMemo } from "react"
 import ReactMarkdown, { Components } from "react-markdown"
+import rehypeKatex from "rehype-katex"
 import remarkBreaks from "remark-breaks"
 import remarkGfm from "remark-gfm"
+import remarkMath from "remark-math"
 import { ButtonCopy } from "../common/button-copy"
 import {
   CodeBlock,
@@ -92,7 +94,8 @@ const MemoizedMarkdownBlock = memo(
   }) {
     return (
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkBreaks]}
+        remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={components}
       >
         {content}
@@ -106,6 +109,24 @@ const MemoizedMarkdownBlock = memo(
 
 MemoizedMarkdownBlock.displayName = "MemoizedMarkdownBlock"
 
+const BLOCK_CACHE_LIMIT = 200
+const blocksCache = new Map<string, string[]>()
+
+function getCachedBlocks(markdown: string): string[] {
+  const cached = blocksCache.get(markdown)
+  if (cached) return cached
+
+  const parsed = parseMarkdownIntoBlocks(markdown)
+  blocksCache.set(markdown, parsed)
+
+  if (blocksCache.size > BLOCK_CACHE_LIMIT) {
+    const firstKey = blocksCache.keys().next().value
+    if (firstKey) blocksCache.delete(firstKey)
+  }
+
+  return parsed
+}
+
 function MarkdownComponent({
   children,
   id,
@@ -114,10 +135,7 @@ function MarkdownComponent({
 }: MarkdownProps) {
   const generatedId = useId()
   const blockId = id ?? generatedId
-  const blocks = useMemo(
-    () => parseMarkdownIntoBlocks(children ?? ""),
-    [children]
-  )
+  const blocks = useMemo(() => getCachedBlocks(children ?? ""), [children])
 
   return (
     <div className={className}>

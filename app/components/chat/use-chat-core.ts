@@ -159,7 +159,7 @@ export function useChatCore({
       saveAllMessages(messages as UIMessage[]).catch((error) => {
         console.error("Failed to persist messages:", error)
       })
-    }, 200)
+    }, 500)
 
     return () => {
       if (persistTimeoutRef.current) {

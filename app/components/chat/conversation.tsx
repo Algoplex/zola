@@ -4,9 +4,9 @@ import {
 } from "@/components/prompt-kit/chat-container"
 import { Loader } from "@/components/prompt-kit/loader"
 import { ScrollButton } from "@/components/prompt-kit/scroll-button"
-import { useRef } from "react"
-import { Message } from "./message"
 import { ExtendedMessageAI } from "@/lib/chat-store/messages/api"
+import { useMemo, useRef } from "react"
+import { Message } from "./message"
 
 // Extract text content from UIMessage parts array (AI SDK v6)
 function getMessageContent(message: any): string {
@@ -49,9 +49,17 @@ export function Conversation({
     return <div className="h-full w-full"></div>
 
   // Deduplicate messages by id (AI SDK v6 may have duplicates during streaming)
-  const uniqueMessages = messages.filter(
-    (msg, index, self) => index === self.findIndex((m) => m.id === msg.id)
-  )
+  const uniqueMessages = useMemo(() => {
+    const seen = new Set<string>()
+    const deduped: typeof messages = []
+    for (const msg of messages) {
+      const id = String(msg.id)
+      if (seen.has(id)) continue
+      seen.add(id)
+      deduped.push(msg)
+    }
+    return deduped
+  }, [messages])
 
   return (
     <div className="relative flex h-full w-full flex-col items-center overflow-x-hidden overflow-y-auto">
@@ -86,7 +94,7 @@ export function Conversation({
                 onReload={onReload}
                 hasScrollAnchor={hasScrollAnchor}
                 parts={message.parts}
-                status={status}
+                status={isLast ? status : undefined}
                 onQuote={onQuote}
                 messageGroupId={
                   (message as ExtendedMessageAI).message_group_id ?? null

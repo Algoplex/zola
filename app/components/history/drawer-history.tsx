@@ -206,6 +206,10 @@ export function DrawerHistory({
           ) : (
             <div
               className="group flex items-center justify-between rounded-lg px-2 py-1.5"
+              style={{
+                contentVisibility: "auto",
+                containIntrinsicSize: "52px",
+              }}
               onClick={() => {
                 if (params.chatId === chat.id) {
                   handleOpenChange(false)

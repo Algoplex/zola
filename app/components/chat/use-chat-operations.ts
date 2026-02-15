@@ -174,20 +174,20 @@ export function useChatOperations({
   // Message handlers
   const handleDelete = useCallback(
     (id: string) => {
-      setMessages(messages.filter((message) => message.id !== id))
+      setMessages((prev) => prev.filter((message) => message.id !== id))
     },
-    [messages, setMessages]
+    [setMessages]
   )
 
   const handleEdit = useCallback(
     (id: string, newText: string) => {
-      setMessages(
-        messages.map((message) =>
+      setMessages((prev) =>
+        prev.map((message) =>
           message.id === id ? { ...message, content: newText } : message
         )
       )
     },
-    [messages, setMessages]
+    [setMessages]
   )
 
   return {

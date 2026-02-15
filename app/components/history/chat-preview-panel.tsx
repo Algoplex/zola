@@ -2,7 +2,7 @@ import { MessageContent } from "@/components/prompt-kit/message"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react"
-import { useLayoutEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 type ChatPreviewPanelProps = {
   chatId: string | null
@@ -187,17 +187,19 @@ export function ChatPreviewPanel({
   const [lastChatId, setLastChatId] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const maxRetries = 3
-  const visibleMessages = messages.filter((message) =>
-    Boolean(message.content?.trim())
+  const visibleMessages = useMemo(
+    () => messages.filter((message) => Boolean(message.content?.trim())),
+    [messages]
   )
 
   const shouldFetch = chatId && chatId !== lastChatId
 
-  if (shouldFetch && onFetchPreview) {
+  useEffect(() => {
+    if (!shouldFetch || !onFetchPreview) return
     setLastChatId(chatId)
     setRetryCount(0)
     onFetchPreview(chatId)
-  }
+  }, [chatId, onFetchPreview, shouldFetch])
 
   const handleRetry = () => {
     if (chatId && onFetchPreview && retryCount < maxRetries) {

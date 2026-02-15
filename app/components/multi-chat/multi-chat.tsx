@@ -12,7 +12,7 @@ import { useUser } from "@/lib/user-store/provider"
 import { cn } from "@/lib/utils"
 import { UIMessage as MessageType } from "@ai-sdk/react"
 import { AnimatePresence, motion } from "motion/react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { MultiChatInput } from "./multi-chat-input"
 import { useMultiChat } from "./use-multi-chat"
 
@@ -57,38 +57,51 @@ export function MultiChat() {
     }))
   }, [models])
 
-  const modelsFromPersisted = useMemo(() => {
-    return persistedMessages
-      .filter((msg) => (msg as any).model)
-      .map((msg) => (msg as any).model)
-  }, [persistedMessages])
+  const modelProviderMap = useMemo(() => {
+    return new Map(models.map((model) => [model.id, model.provider]))
+  }, [models])
 
-  const modelsFromLastGroup = useMemo(() => {
-    const userMessages = persistedMessages.filter((msg) => msg.role === "user")
-    if (userMessages.length === 0) return []
+  const { modelsFromPersisted, modelsFromLastGroup } = useMemo(() => {
+    const persistedModels: string[] = []
+    const lastGroupModels: string[] = []
+    let lastUserIndex = -1
 
-    const lastUserMessage = userMessages[userMessages.length - 1]
-    const lastUserIndex = persistedMessages.indexOf(lastUserMessage)
-
-    const modelsInLastGroup: string[] = []
-    for (let i = lastUserIndex + 1; i < persistedMessages.length; i++) {
+    for (let i = 0; i < persistedMessages.length; i++) {
       const msg = persistedMessages[i]
-      if (msg.role === "user") break
-      if (msg.role === "assistant" && (msg as any).model) {
-        modelsInLastGroup.push((msg as any).model)
+      if ((msg as any).model) {
+        persistedModels.push((msg as any).model)
+      }
+      if (msg.role === "user") {
+        lastUserIndex = i
       }
     }
-    return modelsInLastGroup
+
+    if (lastUserIndex >= 0) {
+      for (let i = lastUserIndex + 1; i < persistedMessages.length; i++) {
+        const msg = persistedMessages[i]
+        if (msg.role === "user") break
+        if (msg.role === "assistant" && (msg as any).model) {
+          lastGroupModels.push((msg as any).model)
+        }
+      }
+    }
+
+    return {
+      modelsFromPersisted: persistedModels,
+      modelsFromLastGroup: lastGroupModels,
+    }
   }, [persistedMessages])
 
   const allModelsToMaintain = useMemo(() => {
-    const combined = [...new Set([...selectedModelIds, ...modelsFromPersisted])]
-    return availableModels.filter((model) => combined.includes(model.id))
+    const combined = new Set([...selectedModelIds, ...modelsFromPersisted])
+    return availableModels.filter((model) => combined.has(model.id))
   }, [availableModels, selectedModelIds, modelsFromPersisted])
 
-  if (selectedModelIds.length === 0 && modelsFromLastGroup.length > 0) {
-    setSelectedModelIds(modelsFromLastGroup)
-  }
+  useEffect(() => {
+    if (selectedModelIds.length === 0 && modelsFromLastGroup.length > 0) {
+      setSelectedModelIds(modelsFromLastGroup)
+    }
+  }, [modelsFromLastGroup, selectedModelIds.length])
 
   const modelChats = useMultiChat(allModelsToMaintain)
   const systemPrompt = useMemo(
@@ -109,10 +122,11 @@ export function MultiChat() {
       }
     } = {}
 
-    for (let i = 0; i < persistedMessages.length; i++) {
-      const message = persistedMessages[i]
+    let currentUserMessage: MessageType | null = null
 
+    for (const message of persistedMessages) {
       if (message.role === "user") {
+        currentUserMessage = message
         const groupKey = getTextContent(message)
         if (!groups[groupKey]) {
           groups[groupKey] = {
@@ -120,25 +134,18 @@ export function MultiChat() {
             assistantMessages: [],
           }
         }
-      } else if (message.role === "assistant") {
-        let associatedUserMessage = null
-        for (let j = i - 1; j >= 0; j--) {
-          if (persistedMessages[j].role === "user") {
-            associatedUserMessage = persistedMessages[j]
-            break
-          }
-        }
+        continue
+      }
 
-        if (associatedUserMessage) {
-          const groupKey = getTextContent(associatedUserMessage)
-          if (!groups[groupKey]) {
-            groups[groupKey] = {
-              userMessage: associatedUserMessage,
-              assistantMessages: [],
-            }
+      if (message.role === "assistant" && currentUserMessage) {
+        const groupKey = getTextContent(currentUserMessage)
+        if (!groups[groupKey]) {
+          groups[groupKey] = {
+            userMessage: currentUserMessage,
+            assistantMessages: [],
           }
-          groups[groupKey].assistantMessages.push(message)
         }
+        groups[groupKey].assistantMessages.push(message)
       }
     }
 
@@ -149,8 +156,7 @@ export function MultiChat() {
           responses: group.assistantMessages.map((msg, index) => {
             const model =
               (msg as any).model || selectedModelIds[index] || `model-${index}`
-            const provider =
-              models.find((m) => m.id === model)?.provider || "unknown"
+            const provider = modelProviderMap.get(model) || "unknown"
 
             return {
               model,
@@ -167,7 +173,7 @@ export function MultiChat() {
     })
 
     return persistedGroups
-  }, [persistedMessages, selectedModelIds, models])
+  }, [persistedMessages, selectedModelIds, modelProviderMap])
 
   const messageGroups = useMemo(() => {
     const persistedGroups = createPersistedGroups()

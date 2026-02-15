@@ -42,19 +42,21 @@ export function ToolInvocation({
     : [toolInvocations]
 
   // Group tool invocations by toolCallId
-  const groupedTools = toolInvocationsData.reduce(
-    (acc, item) => {
-      const { toolCallId } = item.toolInvocation
-      if (!acc[toolCallId]) {
-        acc[toolCallId] = []
-      }
-      acc[toolCallId].push(item)
-      return acc
-    },
-    {} as Record<string, ToolInvocationUIPart[]>
-  )
+  const groupedTools = useMemo(() => {
+    return toolInvocationsData.reduce(
+      (acc, item) => {
+        const { toolCallId } = item.toolInvocation
+        if (!acc[toolCallId]) {
+          acc[toolCallId] = []
+        }
+        acc[toolCallId].push(item)
+        return acc
+      },
+      {} as Record<string, ToolInvocationUIPart[]>
+    )
+  }, [toolInvocationsData])
 
-  const uniqueToolIds = Object.keys(groupedTools)
+  const uniqueToolIds = useMemo(() => Object.keys(groupedTools), [groupedTools])
   const isSingleTool = uniqueToolIds.length === 1
 
   if (isSingleTool) {
@@ -142,35 +144,35 @@ function SingleToolView({
   className,
 }: SingleToolViewProps) {
   // Group by toolCallId and pick the most informative state
-  const groupedTools = toolInvocations.reduce(
-    (acc, item) => {
-      const { toolCallId } = item.toolInvocation
-      if (!acc[toolCallId]) {
-        acc[toolCallId] = []
-      }
-      acc[toolCallId].push(item)
-      return acc
-    },
-    {} as Record<string, ToolInvocationUIPart[]>
-  )
+  const toolsToDisplay = useMemo(() => {
+    const grouped = toolInvocations.reduce(
+      (acc, item) => {
+        const { toolCallId } = item.toolInvocation
+        if (!acc[toolCallId]) {
+          acc[toolCallId] = []
+        }
+        acc[toolCallId].push(item)
+        return acc
+      },
+      {} as Record<string, ToolInvocationUIPart[]>
+    )
 
-  // For each toolCallId, get the most informative state (result > call > requested)
-  const toolsToDisplay = Object.values(groupedTools)
-    .map((group) => {
-      const resultTool = group.find(
-        (item) => item.toolInvocation.state === "result"
-      )
-      const callTool = group.find(
-        (item) => item.toolInvocation.state === "call"
-      )
-      const partialCallTool = group.find(
-        (item) => item.toolInvocation.state === "partial-call"
-      )
+    return Object.values(grouped)
+      .map((group) => {
+        const resultTool = group.find(
+          (item) => item.toolInvocation.state === "result"
+        )
+        const callTool = group.find(
+          (item) => item.toolInvocation.state === "call"
+        )
+        const partialCallTool = group.find(
+          (item) => item.toolInvocation.state === "partial-call"
+        )
 
-      // Return the most informative one
-      return resultTool || callTool || partialCallTool
-    })
-    .filter(Boolean) as ToolInvocationUIPart[]
+        return resultTool || callTool || partialCallTool
+      })
+      .filter(Boolean) as ToolInvocationUIPart[]
+  }, [toolInvocations])
 
   if (toolsToDisplay.length === 0) return null
 

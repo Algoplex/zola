@@ -4,8 +4,17 @@ import * as schema from "./schema"
 
 const { Pool } = pg
 
+const connectionString =
+  process.env.POSTGRES_URL || process.env.DATABASE_URL || ""
+
+if (!connectionString) {
+  console.error(
+    "Missing database connection string. Set POSTGRES_URL or DATABASE_URL."
+  )
+}
+
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
+  connectionString,
   max: 1, // Keep low for serverless to avoid connection exhaustion
   idleTimeoutMillis: 10000, // Close idle clients after 10s
   connectionTimeoutMillis: 10000, // Return error after 10s if connection can't be established

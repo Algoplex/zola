@@ -21,7 +21,7 @@ type MessageProps = {
   isUserAuthenticated?: boolean
 }
 
-export function Message({
+function MessageComponent({
   variant,
   children,
   id,
@@ -85,3 +85,23 @@ export function Message({
 
   return null
 }
+
+export const Message = React.memo(MessageComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.variant === nextProps.variant &&
+    prevProps.children === nextProps.children &&
+    prevProps.id === nextProps.id &&
+    prevProps.isLast === nextProps.isLast &&
+    prevProps.hasScrollAnchor === nextProps.hasScrollAnchor &&
+    prevProps.status === nextProps.status &&
+    prevProps.className === nextProps.className &&
+    prevProps.messageGroupId === nextProps.messageGroupId &&
+    prevProps.isUserAuthenticated === nextProps.isUserAuthenticated &&
+    prevProps.attachments === nextProps.attachments &&
+    prevProps.parts === nextProps.parts &&
+    prevProps.onDelete === nextProps.onDelete &&
+    prevProps.onEdit === nextProps.onEdit &&
+    prevProps.onReload === nextProps.onReload &&
+    prevProps.onQuote === nextProps.onQuote
+  )
+})
