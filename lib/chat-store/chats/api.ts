@@ -39,9 +39,7 @@ export async function getCachedChats(): Promise<Chats[]> {
   const all = await readFromIndexedDB<Chats>("chats")
   return (all as Chats[])
     .filter(Boolean)
-    .sort(
-      (a, b) => +new Date(b.createdAt || "") - +new Date(a.createdAt || "")
-    )
+    .sort((a, b) => +new Date(b.createdAt || "") - +new Date(a.createdAt || ""))
 }
 
 export async function updateChatTitle(

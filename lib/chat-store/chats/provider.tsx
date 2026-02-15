@@ -47,11 +47,7 @@ export function useChats() {
   return context
 }
 
-export function ChatsProvider({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export function ChatsProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [chats, setChats] = useState<Chats[]>([])
 
@@ -190,9 +186,7 @@ export function ChatsProvider({
     const now = new Date()
 
     const updatedChats = prevChats.map((chat) =>
-      chat.id === id
-        ? { ...chat, pinned, pinnedAt: pinned ? now : null }
-        : chat
+      chat.id === id ? { ...chat, pinned, pinnedAt: pinned ? now : null } : chat
     )
     // Sort to maintain proper order of chats
     const sortedChats = updatedChats.sort((a, b) => {

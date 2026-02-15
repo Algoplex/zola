@@ -1,6 +1,7 @@
 "use client"
 
 import { API_ROUTE_CSRF, API_ROUTE_SESSION } from "@/lib/routes"
+import { sendFingerprintToServer } from "@/lib/tracking/client"
 import { useQuery } from "@tanstack/react-query"
 
 export function LayoutClient() {
@@ -20,6 +21,7 @@ export function LayoutClient() {
     queryKey: ["session-init"],
     queryFn: async () => {
       await fetch(API_ROUTE_SESSION, { method: "POST" })
+      await sendFingerprintToServer()
       return true
     },
     staleTime: Infinity,

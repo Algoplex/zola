@@ -77,10 +77,15 @@ export function useChatCore({
   const precreateInFlightRef = useRef(false)
   const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isAuthenticated = useMemo(() => Boolean(user?.id), [user?.id])
-  const systemPrompt = useMemo(
-    () => user?.systemPrompt || SYSTEM_PROMPT_DEFAULT,
-    [user?.systemPrompt]
-  )
+  const systemPrompt = useMemo(() => {
+    const base = user?.systemPrompt || SYSTEM_PROMPT_DEFAULT
+    const currentDate = new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
+    return base.replace(/{{CURRENT_DATE}}/g, currentDate)
+  }, [user?.systemPrompt])
 
   // Search params handling
   const searchParams = useSearchParams()

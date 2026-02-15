@@ -25,8 +25,8 @@ export function ProModelDialog({
         <DialogHeader>
           <DialogTitle>Pro Model</DialogTitle>
           <DialogDescription>
-            This is a Pro model that requires a subscription.
-            Current model: {currentModel}
+            This is a Pro model that requires a subscription. Current model:{" "}
+            {currentModel}
           </DialogDescription>
         </DialogHeader>
       </DialogContent>

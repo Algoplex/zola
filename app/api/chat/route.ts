@@ -5,6 +5,7 @@ import {
   storeAssistantMessage,
   updateChatInDb,
 } from "@/lib/db/chat"
+import { SYSTEM_PROMPT_DEFAULT } from "@/lib/config"
 import { getAllModels } from "@/lib/models"
 import { sanitizeUserInput } from "@/lib/sanitize"
 import { convertToModelMessages, streamText, ToolSet } from "ai"
@@ -94,7 +95,6 @@ export async function POST(req: NextRequest) {
 
     // For now, allow all models without API key requirements
     // TODO: Add API key support if needed
-    const SYSTEM_PROMPT_DEFAULT = `You are Zola, an AI assistant.`
 
     const result = streamText({
       model: modelConfig.apiSdk?.() ?? model,

@@ -7,8 +7,12 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "OpenAI Sans", var(--font-geist-sans), "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono: "Atkinson Hyperlegible Mono", var(--font-geist-mono), "ui-monospace", monospace;
+  --font-sans:
+    "OpenAI Sans", var(--font-geist-sans), "Inter", system-ui, -apple-system,
+    sans-serif;
+  --font-mono:
+    "Atkinson Hyperlegible Mono", var(--font-geist-mono), "ui-monospace",
+    monospace;
   --spacing-app-header: 56px;
   --spacing-input-area: 134px;
 

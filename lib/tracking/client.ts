@@ -95,7 +95,9 @@ function generateAudioFingerprint(): string {
 function getWebGLInfo(): { renderer: string; vendor: string } {
   try {
     const canvas = document.createElement("canvas")
-    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl") as WebGLRenderingContext | null
+    const gl =
+      canvas.getContext("webgl") ||
+      (canvas.getContext("experimental-webgl") as WebGLRenderingContext | null)
     if (!gl) return { renderer: "", vendor: "" }
 
     const debugInfo = gl.getExtension("WEBGL_debug_renderer_info")

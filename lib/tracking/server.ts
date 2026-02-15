@@ -44,9 +44,8 @@ export function getCountryCode(request: NextRequest): string | undefined {
   if (cfCountry && cfCountry !== "XX") return cfCountry
 
   // Vercel
-  const vercelCountry = request.headers.get("x-vercel-id")?.split("::")[0]
-  // Vercel doesn't provide country in headers directly, but we can use edge config
-  // For now, return undefined and rely on IP lookup if needed
+  const vercelCountry = request.headers.get("x-vercel-ip-country")
+  if (vercelCountry) return vercelCountry
 
   return undefined
 }
@@ -56,8 +55,15 @@ export function getCountryCode(request: NextRequest): string | undefined {
  */
 export function getRegion(request: NextRequest): string | undefined {
   // Cloudflare
-  const cfRegion = request.headers.get("cf-ipcountry")
-  // Cloudflare doesn't provide region in headers, need IP lookup
+  const cfRegion = request.headers.get("cf-region")
+  if (cfRegion) return cfRegion
+
+  const cfRegionCode = request.headers.get("cf-region-code")
+  if (cfRegionCode) return cfRegionCode
+
+  // Vercel
+  const vercelRegion = request.headers.get("x-vercel-ip-country-region")
+  if (vercelRegion) return vercelRegion
 
   return undefined
 }
@@ -66,7 +72,13 @@ export function getRegion(request: NextRequest): string | undefined {
  * Extract city from request headers
  */
 export function getCity(request: NextRequest): string | undefined {
-  // Not available in headers, need IP lookup
+  // Cloudflare
+  const cfCity = request.headers.get("cf-ipcity")
+  if (cfCity) return cfCity
+
+  // Vercel
+  const vercelCity = request.headers.get("x-vercel-ip-city")
+  if (vercelCity) return vercelCity
 
   return undefined
 }
@@ -76,6 +88,31 @@ export function getCity(request: NextRequest): string | undefined {
  */
 export function getIsp(request: NextRequest): string | undefined {
   // Cloudflare Enterprise only
+  const cfIsp = request.headers.get("cf-isp")
+  if (cfIsp) return cfIsp
+
+  const vercelIsp = request.headers.get("x-vercel-ip-isp")
+  if (vercelIsp) return vercelIsp
+
+  return undefined
+}
+
+/**
+ * Extract ASN from request headers
+ */
+export function getAsn(request: NextRequest): number | undefined {
+  const cfAsn = request.headers.get("cf-asn")
+  if (cfAsn) {
+    const parsed = Number.parseInt(cfAsn, 10)
+    if (Number.isFinite(parsed)) return parsed
+  }
+
+  const vercelAsn = request.headers.get("x-vercel-ip-asn")
+  if (vercelAsn) {
+    const parsed = Number.parseInt(vercelAsn, 10)
+    if (Number.isFinite(parsed)) return parsed
+  }
+
   return undefined
 }
 
@@ -210,6 +247,7 @@ export function getServerTrackingData(request: NextRequest): RequestMetadata {
     region: getRegion(request),
     city: getCity(request),
     isp: getIsp(request),
+    asn: getAsn(request),
     userAgent,
     acceptLanguage: request.headers.get("accept-language") || undefined,
     accept: request.headers.get("accept") || undefined,
@@ -247,6 +285,7 @@ export function getTrackingDataWithParsing(request: NextRequest): {
     region: getRegion(request),
     city: getCity(request),
     isp: getIsp(request),
+    asn: getAsn(request),
     userAgent,
     browser: uaData?.browser,
     browserVersion: uaData?.browserVersion,

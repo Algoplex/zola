@@ -87,7 +87,14 @@ export function Chat() {
 
   // No auth - always authenticated in the sense that we have a session
   const isAuthenticated = true
-  const systemPrompt = SYSTEM_PROMPT_DEFAULT
+  const systemPrompt = useMemo(() => {
+    const currentDate = new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
+    return SYSTEM_PROMPT_DEFAULT.replace(/{{CURRENT_DATE}}/g, currentDate)
+  }, [])
 
   // New state for quoted text
   const [quotedText, setQuotedText] = useState<{

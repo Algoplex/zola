@@ -144,7 +144,10 @@ export function MultiModelConversation({
                         variant="user"
                         parts={
                           group.userMessage.parts || [
-                            { type: "text", text: getTextContent(group.userMessage) },
+                            {
+                              type: "text",
+                              text: getTextContent(group.userMessage),
+                            },
                           ]
                         }
                         onDelete={() => {}}

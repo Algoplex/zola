@@ -11,6 +11,7 @@ import { TanstackQueryProvider } from "@/lib/tanstack-query/tanstack-query-provi
 import { UserPreferencesProvider } from "@/lib/user-preference-store/provider"
 import { UserProvider } from "@/lib/user-store/provider"
 import { ThemeProvider } from "next-themes"
+import { Analytics } from "@vercel/analytics/next"
 import Script from "next/script"
 import { LayoutClient } from "./layout-client"
 
@@ -50,6 +51,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Analytics />
         <TanstackQueryProvider>
           <LayoutClient />
           <UserProvider>

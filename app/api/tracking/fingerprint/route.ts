@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
 import { getOrCreateSession } from "@/lib/sessions"
 import { getTrackingDataWithParsing } from "@/lib/tracking/server"
+import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +13,9 @@ export async function POST(request: NextRequest) {
     // Merge server and client data
     const sessionData = {
       ...serverData,
+      ipAddress: serverData.ip,
+      deviceType: serverData.deviceType,
+      isBot: serverData.isBot,
       screenWidth: clientData.screenWidth,
       screenHeight: clientData.screenHeight,
       screenColorDepth: clientData.screenColorDepth,

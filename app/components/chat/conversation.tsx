@@ -43,23 +43,23 @@ export function Conversation({
   onQuote,
   isUserAuthenticated,
 }: ConversationProps) {
-  const initialMessageCount = useRef(messages.length)
-
-  if (!messages || messages.length === 0)
-    return <div className="h-full w-full"></div>
+  const safeMessages = Array.isArray(messages) ? messages : []
+  const initialMessageCount = useRef(safeMessages.length)
 
   // Deduplicate messages by id (AI SDK v6 may have duplicates during streaming)
   const uniqueMessages = useMemo(() => {
     const seen = new Set<string>()
-    const deduped: typeof messages = []
-    for (const msg of messages) {
+    const deduped: typeof safeMessages = []
+    for (const msg of safeMessages) {
       const id = String(msg.id)
       if (seen.has(id)) continue
       seen.add(id)
       deduped.push(msg)
     }
     return deduped
-  }, [messages])
+  }, [safeMessages])
+
+  if (safeMessages.length === 0) return <div className="h-full w-full"></div>
 
   return (
     <div className="relative flex h-full w-full flex-col items-center overflow-x-hidden overflow-y-auto">

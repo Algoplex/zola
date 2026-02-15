@@ -104,10 +104,15 @@ export function MultiChat() {
   }, [modelsFromLastGroup, selectedModelIds.length])
 
   const modelChats = useMultiChat(allModelsToMaintain)
-  const systemPrompt = useMemo(
-    () => user?.systemPrompt || SYSTEM_PROMPT_DEFAULT,
-    [user?.systemPrompt]
-  )
+  const systemPrompt = useMemo(() => {
+    const base = user?.systemPrompt || SYSTEM_PROMPT_DEFAULT
+    const currentDate = new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
+    return base.replace(/{{CURRENT_DATE}}/g, currentDate)
+  }, [user?.systemPrompt])
   const isAuthenticated = useMemo(() => Boolean(user?.id), [user?.id])
 
   const createPersistedGroups = useCallback(() => {
