@@ -7,7 +7,7 @@ export async function fetchClient(input: RequestInfo, init?: RequestInit) {
   return fetch(input, {
     ...init,
     headers: {
-      ...(init?.headers || {}),
+      ...init?.headers,
       "x-csrf-token": csrf || "",
       "Content-Type": "application/json",
     },

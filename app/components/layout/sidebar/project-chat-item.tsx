@@ -124,8 +124,8 @@ export function ProjectChatItem({ chat, formatDate }: ProjectChatItemProps) {
   const containerClassName = useMemo(
     () =>
       cn(
-        "border-border hover:bg-accent/50 group/chat relative rounded-lg border transition-colors",
-        isEditing || isMenuOpen ? "bg-accent/50" : ""
+        "border-sidebar-border hover:bg-sidebar-accent/80 group/chat relative rounded-lg border transition-colors",
+        isEditing || isMenuOpen ? "bg-sidebar-accent" : ""
       ),
     [isEditing, isMenuOpen]
   )
@@ -149,27 +149,27 @@ export function ProjectChatItem({ chat, formatDate }: ProjectChatItemProps) {
         <div className="flex items-center p-3">
           <ChatCircleIcon
             size={16}
-            className="text-muted-foreground mr-3 flex-shrink-0"
+            className="text-sidebar-foreground/60 mr-3 flex-shrink-0"
           />
           <input
             ref={inputRef}
             value={editTitle}
             onChange={handleInputChange}
-            className="text-primary flex-1 bg-transparent text-sm font-medium focus:outline-none"
+            className="text-sidebar-foreground flex-1 bg-transparent text-sm font-medium focus:outline-none"
             onKeyDown={handleKeyDown}
             autoFocus
           />
           <div className="ml-2 flex gap-1">
             <button
               onClick={handleSaveClick}
-              className="hover:bg-secondary text-muted-foreground hover:text-primary flex size-6 items-center justify-center rounded-md p-1 transition-colors duration-150"
+              className="hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground flex size-6 items-center justify-center rounded-md p-1 transition-colors duration-150"
               type="button"
             >
               <Check size={12} weight="bold" />
             </button>
             <button
               onClick={handleCancelClick}
-              className="hover:bg-secondary text-muted-foreground hover:text-primary flex size-6 items-center justify-center rounded-md p-1 transition-colors duration-150"
+              className="hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground flex size-6 items-center justify-center rounded-md p-1 transition-colors duration-150"
               type="button"
             >
               <X size={12} weight="bold" />
@@ -194,12 +194,22 @@ export function ProjectChatItem({ chat, formatDate }: ProjectChatItemProps) {
       >
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <h3 className="truncate font-medium">{displayTitle}</h3>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {chat.updated_at
-                ? formatDate(chat.updated_at)
-                : chat.created_at
-                  ? formatDate(chat.created_at)
+            <h3 className="text-sidebar-foreground/90 truncate font-medium">
+              {displayTitle}
+            </h3>
+            <p className="text-sidebar-foreground/60 mt-1 text-sm">
+              {chat.updatedAt
+                ? formatDate(
+                    typeof chat.updatedAt === "string"
+                      ? chat.updatedAt
+                      : chat.updatedAt.toISOString()
+                  )
+                : chat.createdAt
+                  ? formatDate(
+                      typeof chat.createdAt === "string"
+                        ? chat.createdAt
+                        : chat.createdAt.toISOString()
+                    )
                   : null}
             </p>
           </div>

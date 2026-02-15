@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import type { SourceUIPart } from "@ai-sdk/ui-utils"
+import type { SourceUrlUIPart } from "ai"
 import { CaretDown, Link } from "@phosphor-icons/react"
 import { AnimatePresence, motion } from "motion/react"
 import Image from "next/image"
@@ -9,12 +9,12 @@ import { useState } from "react"
 import { addUTM, formatUrl, getFavicon } from "./utils"
 
 type SourcesListProps = {
-  sources: SourceUIPart["source"][]
+  sources: { url: string; title?: string }[]
   className?: string
 }
 
 const TRANSITION = {
-  type: "spring",
+  type: "spring" as const,
   duration: 0.2,
   bounce: 0,
 }
@@ -91,7 +91,7 @@ export function SourcesList({ sources, className }: SourcesListProps) {
                     !faviconUrl || failedFavicons.has(source.url)
 
                   return (
-                    <li key={source.id} className="flex items-center text-sm">
+                    <li key={source.url} className="flex items-center text-sm">
                       <div className="min-w-0 flex-1 overflow-hidden">
                         <a
                           href={addUTM(source.url)}

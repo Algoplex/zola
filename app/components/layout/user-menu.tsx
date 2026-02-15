@@ -1,7 +1,5 @@
 "use client"
 
-import XIcon from "@/components/icons/x"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,24 +7,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { useUser } from "@/lib/user-store/provider"
 import { GithubLogoIcon } from "@phosphor-icons/react"
 import { useState } from "react"
-import { AppInfoTrigger } from "./app-info/app-info-trigger"
-import { FeedbackTrigger } from "./feedback/feedback-trigger"
 import { SettingsTrigger } from "./settings/settings-trigger"
 
 export function UserMenu() {
-  const { user } = useUser()
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isSettingsOpen, setSettingsOpen] = useState(false)
-
-  if (!user) return null
 
   const handleSettingsOpenChange = (isOpen: boolean) => {
     setSettingsOpen(isOpen)
@@ -36,63 +23,42 @@ export function UserMenu() {
   }
 
   return (
-    // fix shadcn/ui / radix bug when dialog into dropdown menu
     <DropdownMenu open={isMenuOpen} onOpenChange={setMenuOpen} modal={false}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger>
-            <Avatar className="bg-background hover:bg-muted">
-              <AvatarImage src={user?.profile_image ?? undefined} />
-              <AvatarFallback>{user?.display_name?.charAt(0)}</AvatarFallback>
-            </Avatar>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent>Profile</TooltipContent>
-      </Tooltip>
-      <DropdownMenuContent
-        className="w-56"
-        align="end"
-        forceMount
-        onCloseAutoFocus={(e) => e.preventDefault()}
-        onInteractOutside={(e) => {
-          if (isSettingsOpen) {
-            e.preventDefault()
-            return
-          }
-          setMenuOpen(false)
-        }}
-      >
-        <DropdownMenuItem className="flex flex-col items-start gap-0 no-underline hover:bg-transparent focus:bg-transparent">
-          <span>{user?.display_name}</span>
-          <span className="text-muted-foreground max-w-full truncate">
-            {user?.email}
-          </span>
+      <DropdownMenuTrigger asChild>
+        <button className="hover:bg-accent flex items-center gap-2 rounded-full border p-1 pr-3 transition-colors">
+          <div className="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full">
+            Z
+          </div>
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem onClick={() => handleSettingsOpenChange(true)}>
+          <SettingsTrigger
+            isOpen={isSettingsOpen}
+            onOpenChange={handleSettingsOpenChange}
+          />
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <SettingsTrigger onOpenChange={handleSettingsOpenChange} />
-        <FeedbackTrigger />
-        <AppInfoTrigger />
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <a
-            href="https://x.com/zoladotchat"
+            href="https://github.com/zola-chat/zola"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2"
+            className="flex cursor-pointer items-center"
           >
-            <XIcon className="size-4 p-0.5" />
-            <span>@zoladotchat</span>
+            <GithubLogoIcon className="mr-2 size-4" />
+            <span>Star on GitHub</span>
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <a
-            href="https://github.com/ibelick/zola"
+            href="https://discord.gg/zola"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2"
+            className="flex cursor-pointer items-center"
           >
-            <GithubLogoIcon className="size-4" />
-            <span>GitHub</span>
+            <span>Join Discord</span>
           </a>
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "endOfLine": "lf",
+  "semi": false,
+  "singleQuote": false,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "experimentalTailwindcss": {},
+  "printWidth": 80,
+  "experimentalSortPackageJson": false,
+  "ignorePatterns": []
+}

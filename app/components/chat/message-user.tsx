@@ -16,9 +16,8 @@ import {
 } from "@/components/prompt-kit/message"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/toast"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
 import { cn } from "@/lib/utils"
-import { Message as MessageType } from "@ai-sdk/react"
+import { type UIMessage } from "@ai-sdk/react"
 import {
   Check,
   Copy,
@@ -35,7 +34,7 @@ const getTextFromDataUrl = (dataUrl: string) => {
 
 export type MessageUserProps = {
   hasScrollAnchor?: boolean
-  attachments?: MessageType["experimental_attachments"]
+  attachments?: any
   children: string
   copied: boolean
   copyToClipboard: () => void
@@ -74,7 +73,7 @@ export function MessageUser({
     const UUIDLength = 36
 
     try {
-      if (isSupabaseEnabled && id && id.length !== UUIDLength) {
+      if (id && id.length !== UUIDLength) {
         // Message IDs failed to sync
         toast({
           title: "Oops, something went wrong",
@@ -112,7 +111,7 @@ export function MessageUser({
         className
       )}
     >
-      {attachments?.map((attachment, index) => (
+      {attachments?.map((attachment: any, index: number) => (
         <div
           className="flex flex-row gap-2"
           key={`${attachment.name}-${index}`}

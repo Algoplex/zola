@@ -30,7 +30,7 @@ export function SidebarProject() {
   return (
     <div className="mb-5">
       <button
-        className="hover:bg-accent/80 hover:text-foreground text-primary group/new-chat relative inline-flex w-full items-center rounded-md bg-transparent px-2 py-2 text-sm transition-colors"
+        className="hover:bg-sidebar-accent/80 hover:text-sidebar-foreground text-sidebar-foreground/90 group/new-chat relative inline-flex w-full items-center rounded-md bg-transparent px-2 py-2 text-sm transition-colors"
         type="button"
         onClick={() => setIsDialogOpen(true)}
       >

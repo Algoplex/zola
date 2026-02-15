@@ -1,98 +1,69 @@
-// app/providers/user-provider.tsx
 "use client"
 
-import {
-  fetchUserProfile,
-  signOutUser,
-  subscribeToUserUpdates,
-  updateUserProfile,
-} from "@/lib/user-store/api"
-import type { UserProfile } from "@/lib/user/types"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useState, useCallback } from "react"
 
-type UserContextType = {
-  user: UserProfile | null
-  isLoading: boolean
-  updateUser: (updates: Partial<UserProfile>) => Promise<void>
-  refreshUser: () => Promise<void>
-  signOut: () => Promise<void>
+interface User {
+  id: string
+  email?: string
+  systemPrompt?: string
+  profileImage?: string
+  displayName?: string
+  favoriteModels?: string[]
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined)
+interface UserContextType {
+  user: User | null
+  isAuthenticated: boolean
+  signOut: () => Promise<void>
+  updateUser: (updates: Partial<User>) => Promise<void>
+  refreshUser: () => Promise<void>
+}
 
-export function UserProvider({
-  children,
-  initialUser,
-}: {
-  children: React.ReactNode
-  initialUser: UserProfile | null
-}) {
-  const [user, setUser] = useState<UserProfile | null>(initialUser)
-  const [isLoading, setIsLoading] = useState(false)
+const UserContext = createContext<UserContextType>({
+  user: null,
+  isAuthenticated: false,
+  signOut: async () => {},
+  updateUser: async () => {},
+  refreshUser: async () => {},
+})
 
-  const refreshUser = async () => {
-    if (!user?.id) return
+export function useUser() {
+  return useContext(UserContext)
+}
 
-    setIsLoading(true)
-    try {
-      const updatedUser = await fetchUserProfile(user.id)
-      if (updatedUser) setUser(updatedUser)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+export function UserProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<{
+    id: string
+    email?: string
+    systemPrompt?: string
+    profileImage?: string
+    displayName?: string
+    favoriteModels?: string[]
+  } | null>(null)
 
-  const updateUser = async (updates: Partial<UserProfile>) => {
-    if (!user?.id) return
+  const signOut = useCallback(async () => {
+    setUser(null)
+  }, [])
 
-    setIsLoading(true)
-    try {
-      const success = await updateUserProfile(user.id, updates)
-      if (success) {
-        setUser((prev) => (prev ? { ...prev, ...updates } : null))
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const updateUser = useCallback(async (updates: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...updates } : null))
+  }, [])
 
-  const signOut = async () => {
-    setIsLoading(true)
-    try {
-      const success = await signOutUser()
-      if (success) setUser(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Set up realtime subscription for user data changes
-  useEffect(() => {
-    if (!user?.id) return
-
-    const unsubscribe = subscribeToUserUpdates(user.id, (newData) => {
-      setUser((prev) => (prev ? { ...prev, ...newData } : null))
-    })
-
-    return () => {
-      unsubscribe()
-    }
-  }, [user?.id])
+  const refreshUser = useCallback(async () => {
+    // No auth - no-op, but provide the method for API compatibility
+  }, [])
 
   return (
     <UserContext.Provider
-      value={{ user, isLoading, updateUser, refreshUser, signOut }}
+      value={{
+        user,
+        isAuthenticated: !!user,
+        signOut,
+        updateUser,
+        refreshUser,
+      }}
     >
       {children}
     </UserContext.Provider>
   )
-}
-
-// Custom hook to use the user context
-export function useUser() {
-  const context = useContext(UserContext)
-  if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider")
-  }
-  return context
 }

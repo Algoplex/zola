@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils"
 import { Check, PencilSimple, TrashSimple, X } from "@phosphor-icons/react"
 import { Pin, PinOff } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ChatPreviewPanel } from "./chat-preview-panel"
 import { CommandFooter } from "./command-footer"
 import { formatDate, groupChatsByDate } from "./utils"
@@ -223,7 +223,14 @@ function CommandItemRow({
 
       <div className="relative flex min-w-[140px] flex-shrink-0 items-center justify-end">
         <div className="text-muted-foreground mr-2 text-xs transition-opacity duration-200 group-hover:opacity-0">
-          {formatDate(chat.updated_at || chat.created_at)}
+          {formatDate(
+            typeof chat.updatedAt === "string"
+              ? chat.updatedAt
+              : chat.updatedAt?.toISOString() ||
+                  (typeof chat.createdAt === "string"
+                    ? chat.createdAt
+                    : chat.createdAt?.toISOString())
+          )}
         </div>
 
         <div className="absolute right-0 flex translate-x-1 gap-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
@@ -237,7 +244,7 @@ function CommandItemRow({
                   e.stopPropagation()
                   togglePinned(chat.id, !chat.pinned)
                 }}
-                disabled={!!editingId || !!deletingId}
+                disabled={Boolean(editingId) || Boolean(deletingId)}
                 aria-label={chat.pinned ? "Unpin" : "Pin"}
               >
                 {chat.pinned ? (
@@ -260,7 +267,7 @@ function CommandItemRow({
                   e.stopPropagation()
                   onEdit(chat)
                 }}
-                disabled={!!editingId || !!deletingId}
+                disabled={Boolean(editingId) || Boolean(deletingId)}
                 aria-label="Edit"
               >
                 <PencilSimple className="group-hover/edit:text-primary size-4 transition-colors duration-150" />
@@ -279,7 +286,7 @@ function CommandItemRow({
                   e.stopPropagation()
                   onDelete(chat.id)
                 }}
-                disabled={!!editingId || !!deletingId}
+                disabled={Boolean(editingId) || Boolean(deletingId)}
                 aria-label="Delete"
               >
                 <TrashSimple className="group-hover/delete:text-primary size-4 transition-colors duration-150" />
@@ -298,6 +305,7 @@ type CustomCommandDialogProps = React.ComponentProps<typeof Dialog> & {
   description?: string
   className?: string
   onOpenChange?: (open: boolean) => void
+  commandProps?: React.ComponentProps<typeof Command>
 }
 
 // Custom CommandDialog with className support
@@ -308,6 +316,7 @@ function CustomCommandDialog({
   className,
   onOpenChange,
   open,
+  commandProps,
   ...props
 }: CustomCommandDialogProps) {
   return (
@@ -318,8 +327,22 @@ function CustomCommandDialog({
       </DialogHeader>
       <DialogContent
         className={cn("overflow-hidden border-none p-0", className)}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          const input = document.querySelector<HTMLInputElement>(
+            "[data-slot='command-input']"
+          )
+          input?.focus()
+        }}
       >
-        <Command className="[&_[cmdk-group-heading]]:text-muted-foreground border-none **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 [&_[cmdk-item]_svg]:border-none">
+        <Command
+          shouldFilter={false}
+          className={cn(
+            "[&_[cmdk-group-heading]]:text-muted-foreground border-none **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 [&_[cmdk-item]_svg]:border-none",
+            commandProps?.className
+          )}
+          {...commandProps}
+        >
           {children}
         </Command>
       </DialogContent>
@@ -341,6 +364,7 @@ export function CommandHistory({
   const router = useRouter()
   const { preferences } = useUserPreferences()
   const hasPrefetchedRef = useRef(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const [searchQuery, setSearchQuery] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -349,6 +373,7 @@ export function CommandHistory({
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [hoveredChatId, setHoveredChatId] = useState<string | null>(null)
   const [isPreviewPanelHovered, setIsPreviewPanelHovered] = useState(false)
+  const [commandValue, setCommandValue] = useState("")
   const { messages, isLoading, error, fetchPreview, clearPreview } =
     useChatPreview()
 
@@ -374,8 +399,20 @@ export function CommandHistory({
       setIsPreviewPanelHovered(false)
       clearPreview()
       hasPrefetchedRef.current = false
+    } else {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+      })
     }
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+      })
+    }
+  }, [isOpen])
 
   useKeyShortcut(
     (e: KeyboardEvent) => e.key === "k" && (e.metaKey || e.ctrlKey),
@@ -395,6 +432,19 @@ export function CommandHistory({
     },
     [preferences.showConversationPreviews, fetchPreview]
   )
+
+  const selectFirstVisible = useCallback(() => {
+    requestAnimationFrame(() => {
+      const firstItem = document.querySelector<HTMLDivElement>("[cmdk-item]")
+      firstItem?.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }))
+    })
+  }, [])
+
+  useEffect(() => {
+    if (isOpen) {
+      selectFirstVisible()
+    }
+  }, [isOpen, selectFirstVisible])
 
   const handlePreviewHover = useCallback(
     (isHovering: boolean) => {
@@ -452,6 +502,8 @@ export function CommandHistory({
     setDeletingId(null)
   }, [])
 
+  const { pinnedChats } = useChats()
+
   const filteredChat = useMemo(() => {
     const query = searchQuery.toLowerCase()
     return query
@@ -466,7 +518,30 @@ export function CommandHistory({
     [chatHistory, searchQuery]
   )
 
-  const { pinnedChats } = useChats()
+  const getChatValue = useCallback(
+    (chat: Chats) => `${chat.title || "Untitled Chat"} ${chat.id}`,
+    []
+  )
+
+  const visibleChats = useMemo(() => {
+    if (searchQuery) {
+      return filteredChat
+    }
+
+    const grouped = groupedChats?.flatMap((group) => group.chats) ?? []
+    return [...pinnedChats, ...grouped]
+  }, [filteredChat, groupedChats, pinnedChats, searchQuery])
+
+  const firstVisibleChat = useMemo(
+    () => visibleChats[0] || null,
+    [visibleChats]
+  )
+
+  useEffect(() => {
+    if (isOpen) {
+      setCommandValue(firstVisibleChat ? getChatValue(firstVisibleChat) : "")
+    }
+  }, [firstVisibleChat, getChatValue, isOpen])
 
   const activePreviewChatId =
     hoveredChatId || (isPreviewPanelHovered ? hoveredChatId : null)
@@ -478,10 +553,13 @@ export function CommandHistory({
         chat.id === editingId || chat.id === deletingId
       const isEditOrDeleteMode = editingId || deletingId
       const isSelected = chat.id === selectedChatId
+      const itemValue = getChatValue(chat)
+      const isCommandSelected = commandValue === itemValue
 
       return (
         <CommandItem
           key={chat.id}
+          value={itemValue}
           onSelect={() => {
             if (preferences.showConversationPreviews) {
               setSelectedChatId(chat.id)
@@ -502,10 +580,12 @@ export function CommandHistory({
               "bg-accent data-[selected=true]:bg-accent",
             !isCurrentChatEditOrDelete &&
               isEditOrDeleteMode &&
-              "data-[selected=true]:bg-transparent",
-            isSelected && preferences.showConversationPreviews && "bg-accent/50"
+              "data-[selected=true]:bg-accent/50",
+            isSelected &&
+              preferences.showConversationPreviews &&
+              "bg-accent/50",
+            isCommandSelected && "bg-accent/60 ring-accent/50 ring-1"
           )}
-          value={chat.id}
           onMouseEnter={() => {
             handleChatHover(chat.id)
           }}
@@ -571,6 +651,11 @@ export function CommandHistory({
         open={isOpen}
         title="Chat History"
         description="Search through your past conversations"
+        commandProps={{
+          value: commandValue,
+          onValueChange: setCommandValue,
+          loop: true,
+        }}
         className={cn(
           preferences.showConversationPreviews
             ? "sm:max-w-[900px]"
@@ -578,9 +663,32 @@ export function CommandHistory({
         )}
       >
         <CommandInput
+          ref={inputRef}
           placeholder="Search history..."
           value={searchQuery}
           onValueChange={(value) => setSearchQuery(value)}
+          autoFocus
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
+            if (visibleChats.length === 0) return
+
+            event.preventDefault()
+
+            const values = visibleChats.map(getChatValue)
+            const currentIndex = values.indexOf(commandValue)
+            const nextIndex =
+              event.key === "ArrowDown"
+                ? (currentIndex + 1 + values.length) % values.length
+                : (currentIndex - 1 + values.length) % values.length
+            const nextChat = visibleChats[nextIndex]
+            if (!nextChat) return
+
+            setCommandValue(getChatValue(nextChat))
+            if (preferences.showConversationPreviews) {
+              setSelectedChatId(nextChat.id)
+              handleChatHover(nextChat.id)
+            }
+          }}
         />
 
         <div className="grid grid-cols-5">

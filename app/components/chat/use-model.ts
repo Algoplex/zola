@@ -28,9 +28,9 @@ export function useModel({
 }: UseModelProps) {
   // Calculate the effective model based on priority: chat model > first favorite model > default
   const getEffectiveModel = useCallback(() => {
-    const firstFavoriteModel = user?.favorite_models?.[0]
+    const firstFavoriteModel = user?.favoriteModels?.[0]
     return currentChat?.model || firstFavoriteModel || MODEL_DEFAULT
-  }, [currentChat?.model, user?.favorite_models])
+  }, [currentChat?.model, user?.favoriteModels])
 
   // Use local state only for temporary overrides, derive base value from props
   const [localSelectedModel, setLocalSelectedModel] = useState<string | null>(

@@ -20,7 +20,7 @@ export type MarkdownProps = {
 }
 
 function parseMarkdownIntoBlocks(markdown: string): string[] {
-  const tokens = marked.lexer(markdown)
+  const tokens = marked.lexer(markdown ?? "")
   return tokens.map((token) => token.raw)
 }
 
@@ -114,7 +114,10 @@ function MarkdownComponent({
 }: MarkdownProps) {
   const generatedId = useId()
   const blockId = id ?? generatedId
-  const blocks = useMemo(() => parseMarkdownIntoBlocks(children), [children])
+  const blocks = useMemo(
+    () => parseMarkdownIntoBlocks(children ?? ""),
+    [children]
+  )
 
   return (
     <div className={className}>

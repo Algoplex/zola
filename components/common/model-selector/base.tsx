@@ -1,6 +1,5 @@
 "use client"
 
-import { PopoverContentAuth } from "@/app/components/chat-input/popover-content-auth"
 import { useBreakpoint } from "@/app/hooks/use-breakpoint"
 import { useKeyShortcut } from "@/app/hooks/use-key-shortcut"
 import { Button } from "@/components/ui/button"
@@ -36,7 +35,6 @@ import {
   StarIcon,
 } from "@phosphor-icons/react"
 import { useRef, useState } from "react"
-import { ProModelDialog } from "./pro-dialog"
 import { SubMenu } from "./sub-menu"
 
 type ModelSelectorProps = {
@@ -137,14 +135,20 @@ export function ModelSelector({
   const trigger = (
     <Button
       variant="outline"
-      className={cn("dark:bg-secondary justify-between", className)}
+      className={cn(
+        "dark:bg-secondary justify-between",
+        "max-w-full min-w-0",
+        className
+      )}
       disabled={isLoadingModels}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2">
         {currentProvider?.icon && <currentProvider.icon className="size-5" />}
-        <span>{currentModel?.name || "Select model"}</span>
+        <span className="min-w-0 truncate">
+          {currentModel?.name || "Select model"}
+        </span>
       </div>
-      <CaretDownIcon className="size-4 opacity-50" />
+      <CaretDownIcon className="size-4 shrink-0 opacity-50" />
     </Button>
   )
 
@@ -180,7 +184,6 @@ export function ModelSelector({
           </TooltipTrigger>
           <TooltipContent>Select a model</TooltipContent>
         </Tooltip>
-        <PopoverContentAuth />
       </Popover>
     )
   }
@@ -188,11 +191,6 @@ export function ModelSelector({
   if (isMobile) {
     return (
       <>
-        <ProModelDialog
-          isOpen={isProDialogOpen}
-          setIsOpen={setIsProDialogOpen}
-          currentModel={selectedProModel || ""}
-        />
         <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
           <DrawerTrigger asChild>{trigger}</DrawerTrigger>
           <DrawerContent>
@@ -245,11 +243,6 @@ export function ModelSelector({
 
   return (
     <div>
-      <ProModelDialog
-        isOpen={isProDialogOpen}
-        setIsOpen={setIsProDialogOpen}
-        currentModel={selectedProModel || ""}
-      />
       <Tooltip>
         <DropdownMenu
           open={isDropdownOpen}

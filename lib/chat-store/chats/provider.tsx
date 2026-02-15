@@ -5,11 +5,11 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import { MODEL_DEFAULT, SYSTEM_PROMPT_DEFAULT } from "../../config"
 import type { Chats } from "../types"
 import {
-  createNewChat as createNewChatFromDb,
-  deleteChat as deleteChatFromDb,
+  createNewChat as createChatInApi,
+  deleteChat as deleteChatFromCache,
   fetchAndCacheChats,
   getCachedChats,
-  updateChatModel as updateChatModelFromDb,
+  updateChatModel as updateChatModelInApi,
   updateChatTitle,
 } from "./api"
 
@@ -48,25 +48,21 @@ export function useChats() {
 }
 
 export function ChatsProvider({
-  userId,
   children,
 }: {
-  userId?: string
   children: React.ReactNode
 }) {
   const [isLoading, setIsLoading] = useState(true)
   const [chats, setChats] = useState<Chats[]>([])
 
   useEffect(() => {
-    if (!userId) return
-
     const load = async () => {
       setIsLoading(true)
       const cached = await getCachedChats()
       setChats(cached)
 
       try {
-        const fresh = await fetchAndCacheChats(userId)
+        const fresh = await fetchAndCacheChats()
         setChats(fresh)
       } finally {
         setIsLoading(false)
@@ -74,12 +70,10 @@ export function ChatsProvider({
     }
 
     load()
-  }, [userId])
+  }, [])
 
   const refresh = async () => {
-    if (!userId) return
-
-    const fresh = await fetchAndCacheChats(userId)
+    const fresh = await fetchAndCacheChats()
     setChats(fresh)
   }
 
@@ -88,10 +82,10 @@ export function ChatsProvider({
     setChats((prev) => {
       previousState = prev
       const updatedChatWithNewTitle = prev.map((c) =>
-        c.id === id ? { ...c, title, updated_at: new Date().toISOString() } : c
+        c.id === id ? { ...c, title, updatedAt: new Date() } : c
       )
       return updatedChatWithNewTitle.sort(
-        (a, b) => +new Date(b.updated_at || "") - +new Date(a.updated_at || "")
+        (a, b) => +new Date(b.updatedAt || "") - +new Date(a.updatedAt || "")
       )
     })
     try {
@@ -111,7 +105,7 @@ export function ChatsProvider({
     setChats((prev) => prev.filter((c) => c.id !== id))
 
     try {
-      await deleteChatFromDb(id)
+      await deleteChatFromCache(id)
       if (id === currentChatId && redirect) redirect()
     } catch {
       setChats(prev)
@@ -134,30 +128,23 @@ export function ChatsProvider({
     const optimisticChat = {
       id: optimisticId,
       title: title || "New Chat",
-      created_at: new Date().toISOString(),
+      createdAt: new Date(),
       model: model || MODEL_DEFAULT,
-      system_prompt: systemPrompt || SYSTEM_PROMPT_DEFAULT,
-      user_id: userId,
-      public: true,
-      updated_at: new Date().toISOString(),
-      project_id: null,
+      sessionId: null,
+      updatedAt: new Date(),
       pinned: false,
-      pinned_at: null,
+      pinnedAt: null,
     }
     setChats((prev) => [optimisticChat, ...prev])
 
     try {
-      const newChat = await createNewChatFromDb(
-        userId,
-        title,
-        model,
-        isAuthenticated,
-        projectId
-      )
+      const newChat = await createChatInApi(title, model)
 
       setChats((prev) => [
         newChat,
-        ...prev.filter((c) => c.id !== optimisticId),
+        ...prev
+          .filter((c): c is Chats => Boolean(c))
+          .filter((c) => c.id !== optimisticId),
       ])
 
       return newChat
@@ -180,7 +167,7 @@ export function ChatsProvider({
     const prev = [...chats]
     setChats((prev) => prev.map((c) => (c.id === id ? { ...c, model } : c)))
     try {
-      await updateChatModelFromDb(id, model)
+      await updateChatModelInApi(id, model)
     } catch {
       setChats(prev)
       toast({ title: "Failed to update model", status: "error" })
@@ -190,27 +177,27 @@ export function ChatsProvider({
   const bumpChat = async (id: string) => {
     setChats((prev) => {
       const updatedChatWithNewUpdatedAt = prev.map((c) =>
-        c.id === id ? { ...c, updated_at: new Date().toISOString() } : c
+        c.id === id ? { ...c, updatedAt: new Date() } : c
       )
       return updatedChatWithNewUpdatedAt.sort(
-        (a, b) => +new Date(b.updated_at || "") - +new Date(a.updated_at || "")
+        (a, b) => +new Date(b.updatedAt || "") - +new Date(a.updatedAt || "")
       )
     })
   }
 
   const togglePinned = async (id: string, pinned: boolean) => {
     const prevChats = [...chats]
-    const now = new Date().toISOString()
+    const now = new Date()
 
     const updatedChats = prevChats.map((chat) =>
       chat.id === id
-        ? { ...chat, pinned, pinned_at: pinned ? now : null }
+        ? { ...chat, pinned, pinnedAt: pinned ? now : null }
         : chat
     )
     // Sort to maintain proper order of chats
     const sortedChats = updatedChats.sort((a, b) => {
-      const aTime = new Date(a.updated_at || a.created_at || 0).getTime()
-      const bTime = new Date(b.updated_at || b.created_at || 0).getTime()
+      const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime()
+      const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime()
       return bTime - aTime
     })
     setChats(sortedChats)
@@ -229,11 +216,12 @@ export function ChatsProvider({
   const pinnedChats = useMemo(
     () =>
       chats
-        .filter((c) => c.pinned && !c.project_id)
+        .filter((c): c is Chats => Boolean(c))
+        .filter((c) => c.pinned === true)
         .slice()
         .sort((a, b) => {
-          const at = a.pinned_at ? +new Date(a.pinned_at) : 0
-          const bt = b.pinned_at ? +new Date(b.pinned_at) : 0
+          const at = a.pinnedAt ? +new Date(a.pinnedAt) : 0
+          const bt = b.pinnedAt ? +new Date(b.pinnedAt) : 0
           return bt - at
         }),
     [chats]

@@ -20,7 +20,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        "bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md backdrop-blur-xl",
+        "bg-popover text-popover-foreground relative flex h-full w-full flex-col overflow-hidden rounded-md backdrop-blur-xl",
         className
       )}
       {...props}
@@ -52,27 +52,27 @@ function CommandDialog({
   )
 }
 
-function CommandInput({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
-  return (
-    <div
-      data-slot="command-input-wrapper"
-      className="flex h-9 items-center gap-2 border-b px-3"
-    >
-      <MagnifyingGlass className="size-4 shrink-0 opacity-50" />
-      <CommandPrimitive.Input
-        data-slot="command-input"
-        className={cn(
-          "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
-          className
-        )}
-        {...props}
-      />
-    </div>
-  )
-}
+const CommandInput = React.forwardRef<
+  React.ElementRef<typeof CommandPrimitive.Input>,
+  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
+>(({ className, ...props }, ref) => (
+  <div
+    data-slot="command-input-wrapper"
+    className="flex h-9 items-center gap-2 border-b px-3"
+  >
+    <MagnifyingGlass className="size-4 shrink-0 opacity-50" />
+    <CommandPrimitive.Input
+      ref={ref}
+      data-slot="command-input"
+      className={cn(
+        "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      {...props}
+    />
+  </div>
+))
+CommandInput.displayName = CommandPrimitive.Input.displayName
 
 function CommandList({
   className,
@@ -83,6 +83,24 @@ function CommandList({
       data-slot="command-list"
       className={cn(
         "max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CommandOverlay({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="command-overlay"
+      className={cn(
+        "pointer-events-none absolute inset-0 rounded-md bg-transparent",
+        "[&_[cmdk-item][data-selected=true]]:bg-accent/50",
+        "[&_[cmdk-item][data-selected=true]]:text-foreground",
+        "[&_[cmdk-item][data-selected=true]]:outline",
+        "[&_[cmdk-item][data-selected=true]]:outline-1",
+        "[&_[cmdk-item][data-selected=true]]:outline-accent/30",
         className
       )}
       {...props}
@@ -139,7 +157,7 @@ function CommandItem({
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "data-[selected]:bg-accent/60 data-[selected]:text-foreground data-[selected]:ring-accent/50 [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected]:ring-1 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}

@@ -17,7 +17,7 @@ export function SidebarList({
 }: SidebarListProps) {
   return (
     <div>
-      <h3 className="flex items-center gap-1 overflow-hidden px-2 pt-3 pb-2 text-xs font-semibold break-all text-ellipsis">
+      <h3 className="text-sidebar-foreground/60 flex items-center gap-1 overflow-hidden px-2 pt-3 pb-2 text-[11px] font-semibold tracking-wide break-all text-ellipsis uppercase">
         {icon && <span>{icon}</span>}
         {title}
       </h3>

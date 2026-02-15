@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 
 // Style constants
 const DOT_SIZE = "size-2"
@@ -21,7 +21,7 @@ const ANIMATION = {
 
 const TRANSITION = {
   duration: ANIMATION_DURATION,
-  ease: "easeInOut",
+  ease: "easeInOut" as const,
   repeat: Number.POSITIVE_INFINITY,
   repeatType: "loop" as const,
 }

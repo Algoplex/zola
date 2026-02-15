@@ -1,6 +1,5 @@
 "use client"
 
-import { PopoverContentAuth } from "@/app/components/chat-input/popover-content-auth"
 import { useBreakpoint } from "@/app/hooks/use-breakpoint"
 import { useKeyShortcut } from "@/app/hooks/use-key-shortcut"
 import { Button } from "@/components/ui/button"
@@ -39,8 +38,8 @@ import {
 } from "@phosphor-icons/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useRef, useState } from "react"
-import { ProModelDialog } from "../model-selector/pro-dialog"
 import { SubMenu } from "../model-selector/sub-menu"
+import { ProModelDialog } from "../model-selector/pro-dialog"
 
 type MultiModelSelectorProps = {
   selectedModelIds: string[]
@@ -178,7 +177,7 @@ export function MultiModelSelector({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              transition={{ duration: 0.15, ease: "easeOut" as const }}
               className="text-muted-foreground"
             >
               Select models
@@ -189,7 +188,7 @@ export function MultiModelSelector({
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              transition={{ duration: 0.15, ease: "easeOut" as const }}
               className="flex items-center gap-2"
             >
               {(() => {
@@ -202,7 +201,7 @@ export function MultiModelSelector({
                     animate={{ scale: 1, rotate: 0 }}
                     exit={{ scale: 0, rotate: 180 }}
                     transition={{
-                      type: "spring",
+                      type: "spring" as const,
                       stiffness: 300,
                       damping: 20,
                     }}
@@ -226,7 +225,7 @@ export function MultiModelSelector({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.1 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              transition={{ duration: 0.15, ease: "easeOut" as const }}
               className="flex min-w-0 flex-1 items-center gap-1"
             >
               <div className="flex flex-shrink-0 -space-x-1">
@@ -257,7 +256,7 @@ export function MultiModelSelector({
                           opacity: 0,
                         }}
                         transition={{
-                          type: "spring",
+                          type: "spring" as const,
                           stiffness: 400,
                           damping: 25,
                           delay: index * 0.05,
@@ -280,7 +279,7 @@ export function MultiModelSelector({
                     exit={{ opacity: 0, y: -8 }}
                     transition={{
                       duration: 0.15,
-                      ease: "easeOut",
+                      ease: "easeOut" as const,
                     }}
                     className="inline-block"
                   >
@@ -326,7 +325,6 @@ export function MultiModelSelector({
           </TooltipTrigger>
           <TooltipContent>Select models</TooltipContent>
         </Tooltip>
-        <PopoverContentAuth />
       </Popover>
     )
   }

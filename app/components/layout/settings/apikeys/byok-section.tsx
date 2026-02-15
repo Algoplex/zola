@@ -3,7 +3,7 @@
 import ClaudeIcon from "@/components/icons/claude"
 import GoogleIcon from "@/components/icons/google"
 import MistralIcon from "@/components/icons/mistral"
-import OpenAIIcon from "@/components/icons/openai"
+import { OpenAIIcon } from "@/components/icons/openai"
 import OpenRouterIcon from "@/components/icons/openrouter"
 import PerplexityIcon from "@/components/icons/perplexity"
 import XaiIcon from "@/components/icons/xai"

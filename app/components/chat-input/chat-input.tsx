@@ -1,19 +1,13 @@
 "use client"
 
-import { ModelSelector } from "@/components/common/model-selector/base"
 import {
   PromptInput,
-  PromptInputAction,
-  PromptInputActions,
   PromptInputTextarea,
 } from "@/components/prompt-kit/prompt-input"
 import { Button } from "@/components/ui/button"
-import { getModelInfo } from "@/lib/models"
 import { ArrowUpIcon, StopIcon } from "@phosphor-icons/react"
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { PromptSystem } from "../suggestions/prompt-system"
-import { ButtonFileUpload } from "./button-file-upload"
-import { ButtonSearch } from "./button-search"
 import { FileList } from "./file-list"
 
 type ChatInputProps = {
@@ -27,8 +21,6 @@ type ChatInputProps = {
   onFileRemove: (file: File) => void
   onSuggestion: (suggestion: string) => void
   hasSuggestions?: boolean
-  onSelectModel: (model: string) => void
-  selectedModel: string
   isUserAuthenticated: boolean
   stop: () => void
   status?: "submitted" | "streaming" | "ready" | "error"
@@ -42,13 +34,12 @@ export function ChatInput({
   onValueChange,
   onSend,
   isSubmitting,
+  hasMessages,
   files,
   onFileUpload,
   onFileRemove,
   onSuggestion,
   hasSuggestions,
-  onSelectModel,
-  selectedModel,
   isUserAuthenticated,
   stop,
   status,
@@ -56,10 +47,9 @@ export function ChatInput({
   enableSearch,
   quotedText,
 }: ChatInputProps) {
-  const selectModelConfig = getModelInfo(selectedModel)
-  const hasSearchSupport = Boolean(selectModelConfig?.webSearch)
   const isOnlyWhitespace = (text: string) => !/[^\s]/.test(text)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const allowAutoFocus = !hasMessages
 
   const handleSend = useCallback(() => {
     if (isSubmitting) {
@@ -153,12 +143,6 @@ export function ChatInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quotedText, onValueChange])
 
-  useMemo(() => {
-    if (!hasSearchSupport && enableSearch) {
-      setEnableSearch?.(false)
-    }
-  }, [hasSearchSupport, enableSearch, setEnableSearch])
-
   return (
     <div className="relative flex w-full flex-col gap-4">
       {hasSuggestions && (
@@ -181,51 +165,28 @@ export function ChatInput({
           <FileList files={files} onFileRemove={onFileRemove} />
           <PromptInputTextarea
             ref={textareaRef}
-            placeholder="Ask Zola"
+            autoFocus={allowAutoFocus}
+            placeholder="Ask Anything"
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            className="min-h-[44px] pt-3 pl-4 text-base leading-[1.3] sm:text-base md:text-base"
+            className="min-h-10 py-2 pr-10 pl-4 text-base leading-[1.3] sm:text-base md:text-base"
           />
-          <PromptInputActions className="mt-3 w-full justify-between p-2">
-            <div className="flex gap-2">
-              <ButtonFileUpload
-                onFileUpload={onFileUpload}
-                isUserAuthenticated={isUserAuthenticated}
-                model={selectedModel}
-              />
-              <ModelSelector
-                selectedModelId={selectedModel}
-                setSelectedModelId={onSelectModel}
-                isUserAuthenticated={isUserAuthenticated}
-                className="rounded-full"
-              />
-              {hasSearchSupport ? (
-                <ButtonSearch
-                  isSelected={enableSearch}
-                  onToggle={setEnableSearch}
-                  isAuthenticated={isUserAuthenticated}
-                />
-              ) : null}
-            </div>
-            <PromptInputAction
-              tooltip={status === "streaming" ? "Stop" : "Send"}
-            >
-              <Button
-                size="sm"
-                className="size-9 rounded-full transition-all duration-300 ease-out"
-                disabled={!value || isSubmitting || isOnlyWhitespace(value)}
-                type="button"
-                onClick={handleSend}
-                aria-label={status === "streaming" ? "Stop" : "Send message"}
-              >
-                {status === "streaming" ? (
-                  <StopIcon className="size-4" />
-                ) : (
-                  <ArrowUpIcon className="size-4" />
-                )}
-              </Button>
-            </PromptInputAction>
-          </PromptInputActions>
+          <Button
+            size="sm"
+            className="absolute right-2 bottom-2 size-8 rounded-full transition-all duration-300 ease-out"
+            disabled={Boolean(
+              !value || isSubmitting || isOnlyWhitespace(value)
+            )}
+            type="button"
+            onClick={handleSend}
+            aria-label={status === "streaming" ? "Stop" : "Send message"}
+          >
+            {status === "streaming" ? (
+              <StopIcon className="size-4" />
+            ) : (
+              <ArrowUpIcon className="size-4" />
+            )}
+          </Button>
         </PromptInput>
       </div>
     </div>

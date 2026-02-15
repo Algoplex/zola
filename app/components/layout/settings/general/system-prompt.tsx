@@ -12,14 +12,14 @@ export function SystemPromptSection() {
   const { user, updateUser } = useUser()
   const [isLoading, setIsLoading] = useState(false)
   const [prompt, setPrompt] = useState<string | null>(null)
-  const effectivePrompt = prompt ?? user?.system_prompt ?? ""
+  const effectivePrompt = prompt ?? user?.systemPrompt ?? ""
 
   const savePrompt = async () => {
     if (!user?.id) return
 
     setIsLoading(true)
     try {
-      await updateUser({ system_prompt: prompt })
+      await updateUser({ systemPrompt: prompt ?? undefined })
 
       toast({
         title: "Prompt saved",
@@ -43,7 +43,7 @@ export function SystemPromptSection() {
     setPrompt(value)
   }
 
-  const hasChanges = effectivePrompt !== (user?.system_prompt || "")
+  const hasChanges = effectivePrompt !== (user?.systemPrompt || "")
 
   return (
     <div>

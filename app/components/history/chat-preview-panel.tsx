@@ -17,7 +17,7 @@ type ChatMessage = {
   id: string
   content: string
   role: "user" | "assistant"
-  created_at: string
+  createdAt: string
 }
 
 type MessageBubbleProps = {
@@ -187,6 +187,9 @@ export function ChatPreviewPanel({
   const [lastChatId, setLastChatId] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const maxRetries = 3
+  const visibleMessages = messages.filter((message) =>
+    Boolean(message.content?.trim())
+  )
 
   const shouldFetch = chatId && chatId !== lastChatId
 
@@ -205,7 +208,7 @@ export function ChatPreviewPanel({
 
   // Immediately scroll to bottom when chatId changes or messages load
   useLayoutEffect(() => {
-    if (chatId && messages.length > 0 && scrollAreaRef.current) {
+    if (chatId && visibleMessages.length > 0 && scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector(
         "[data-radix-scroll-area-viewport]"
       )
@@ -213,7 +216,7 @@ export function ChatPreviewPanel({
         scrollContainer.scrollTop = scrollContainer.scrollHeight
       }
     }
-  }, [chatId, messages.length])
+  }, [chatId, visibleMessages.length])
 
   return (
     <div
@@ -231,23 +234,23 @@ export function ChatPreviewPanel({
             onRetry={retryCount < maxRetries ? handleRetry : undefined}
           />
         )}
-        {chatId && !isLoading && !error && messages.length === 0 && (
+        {chatId && !isLoading && !error && visibleMessages.length === 0 && (
           <EmptyState />
         )}
-        {chatId && !isLoading && !error && messages.length > 0 && (
+        {chatId && !isLoading && !error && visibleMessages.length > 0 && (
           <ScrollArea ref={scrollAreaRef} className="h-full">
             <div className="space-y-4 p-6">
               <div className="flex justify-center">
                 <div className="text-muted-foreground bg-muted/50 rounded-full px-2 py-1 text-xs">
-                  Last {messages.length} messages
+                  Last {visibleMessages.length} messages
                 </div>
               </div>
-              {messages.map((message) => (
+              {visibleMessages.map((message) => (
                 <MessageBubble
                   key={message.id}
                   content={message.content}
                   role={message.role}
-                  timestamp={message.created_at}
+                  timestamp={message.createdAt}
                 />
               ))}
             </div>

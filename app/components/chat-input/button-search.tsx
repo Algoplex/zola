@@ -1,41 +1,18 @@
 import { Button } from "@/components/ui/button"
-import { Popover, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { GlobeIcon } from "@phosphor-icons/react"
-import React from "react"
-import { PopoverContentAuth } from "./popover-content-auth"
 
 type ButtonSearchProps = {
   isSelected?: boolean
   onToggle?: (isSelected: boolean) => void
-  isAuthenticated: boolean
 }
 
 export function ButtonSearch({
   isSelected = false,
   onToggle,
-  isAuthenticated,
 }: ButtonSearchProps) {
   const handleClick = () => {
     const newState = !isSelected
     onToggle?.(newState)
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="secondary"
-            className="border-border dark:bg-secondary rounded-full border bg-transparent"
-          >
-            <GlobeIcon className="size-5" />
-            Search
-          </Button>
-        </PopoverTrigger>
-        <PopoverContentAuth />
-      </Popover>
-    )
   }
 
   return (
@@ -48,8 +25,21 @@ export function ButtonSearch({
       )}
       onClick={handleClick}
     >
-      <GlobeIcon className="size-5" />
-      <span className="hidden md:block">Search</span>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      Search
     </Button>
   )
 }

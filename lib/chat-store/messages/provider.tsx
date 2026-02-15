@@ -2,24 +2,24 @@
 
 import { toast } from "@/components/ui/toast"
 import { useChatSession } from "@/lib/chat-store/session/provider"
-import type { Message as MessageAISDK } from "ai"
 import { createContext, useContext, useEffect, useState } from "react"
 import { writeToIndexedDB } from "../persist"
 import {
   cacheMessages,
   clearMessagesForChat,
+  ExtendedMessageAI,
   getCachedMessages,
   getMessagesFromDb,
   setMessages as saveMessages,
 } from "./api"
 
 interface MessagesContextType {
-  messages: MessageAISDK[]
+  messages: ExtendedMessageAI[]
   isLoading: boolean
-  setMessages: React.Dispatch<React.SetStateAction<MessageAISDK[]>>
+  setMessages: React.Dispatch<React.SetStateAction<ExtendedMessageAI[]>>
   refresh: () => Promise<void>
-  saveAllMessages: (messages: MessageAISDK[]) => Promise<void>
-  cacheAndAddMessage: (message: MessageAISDK) => Promise<void>
+  saveAllMessages: (messages: ExtendedMessageAI[]) => Promise<void>
+  cacheAndAddMessage: (message: ExtendedMessageAI) => Promise<void>
   resetMessages: () => Promise<void>
   deleteMessages: () => Promise<void>
 }
@@ -34,7 +34,7 @@ export function useMessages() {
 }
 
 export function MessagesProvider({ children }: { children: React.ReactNode }) {
-  const [messages, setMessages] = useState<MessageAISDK[]>([])
+  const [messages, setMessages] = useState<ExtendedMessageAI[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { chatId } = useChatSession()
 
@@ -78,7 +78,7 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const cacheAndAddMessage = async (message: MessageAISDK) => {
+  const cacheAndAddMessage = async (message: ExtendedMessageAI) => {
     if (!chatId) return
 
     try {
@@ -92,7 +92,7 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const saveAllMessages = async (newMessages: MessageAISDK[]) => {
+  const saveAllMessages = async (newMessages: ExtendedMessageAI[]) => {
     // @todo: manage the case where the chatId is null (first time the user opens the chat)
     if (!chatId) return
 

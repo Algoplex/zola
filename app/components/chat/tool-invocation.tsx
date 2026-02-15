@@ -1,7 +1,6 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import type { ToolInvocationUIPart } from "@ai-sdk/ui-utils"
 import {
   CaretDown,
   CheckCircle,
@@ -11,8 +10,14 @@ import {
   Spinner,
   Wrench,
 } from "@phosphor-icons/react"
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion } from "motion/react"
 import { useMemo, useState } from "react"
+
+// Backward-compatible type for v5-style tool invocation access
+// In v6, properties are at top level; this wraps them to match v5 structure
+type ToolInvocationUIPart = {
+  toolInvocation: any
+}
 
 interface ToolInvocationProps {
   toolInvocations: ToolInvocationUIPart[]
@@ -21,7 +26,7 @@ interface ToolInvocationProps {
 }
 
 const TRANSITION = {
-  type: "spring",
+  type: "spring" as const,
   duration: 0.2,
   bounce: 0,
 }

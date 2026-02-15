@@ -8,29 +8,23 @@ import {
   Sparkle,
 } from "@phosphor-icons/react/dist/ssr"
 
-export const NON_AUTH_DAILY_MESSAGE_LIMIT = 5
-export const AUTH_DAILY_MESSAGE_LIMIT = 1000
+export const NON_AUTH_DAILY_MESSAGE_LIMIT = 9999
+export const AUTH_DAILY_MESSAGE_LIMIT = 9999
 export const REMAINING_QUERY_ALERT_THRESHOLD = 2
-export const DAILY_FILE_UPLOAD_LIMIT = 5
+export const DAILY_FILE_UPLOAD_LIMIT = 9999
 export const DAILY_LIMIT_PRO_MODELS = 500
 
-export const NON_AUTH_ALLOWED_MODELS = ["gpt-4.1-nano"]
+export const NON_AUTH_ALLOWED_MODELS = ["gemini-3-flash-preview"]
 
-export const FREE_MODELS_IDS = [
-  "openrouter:deepseek/deepseek-r1:free",
-  "openrouter:meta-llama/llama-3.3-8b-instruct:free",
-  "pixtral-large-latest",
-  "mistral-large-latest",
-  "gpt-4.1-nano",
-]
+export const FREE_MODELS_IDS = ["gemini-3-flash-preview"]
 
-export const MODEL_DEFAULT = "gpt-4.1-nano"
+export const MODEL_DEFAULT = "gemini-3-flash-preview"
 
-export const APP_NAME = "Zola"
-export const APP_DOMAIN = "https://zola.chat"
+export const APP_NAME = "ChatGPT 5.2"
+export const APP_DOMAIN = "https://chatgpt.eu.com"
 
 export const SUGGESTIONS = [
-  {
+/*  {
     label: "Summary",
     highlight: "Summarize",
     prompt: `Summarize`,
@@ -113,9 +107,9 @@ export const SUGGESTIONS = [
       "Explain the difference between AI and AGI",
     ],
     icon: Lightbulb,
-  },
+  }, */
 ]
 
 export const SYSTEM_PROMPT_DEFAULT = `You are Zola, a thoughtful and clear assistant. Your tone is calm, minimal, and human. You write with intention—never too much, never too little. You avoid clichés, speak simply, and offer helpful, grounded answers. When needed, you ask good questions. You don't try to impress—you aim to clarify. You may use metaphors if they bring clarity, but you stay sharp and sincere. You're here to help the user think clearly and move forward, not to overwhelm or overperform.`
 
-export const MESSAGE_MAX_LENGTH = 10000
+export const MESSAGE_MAX_LENGTH = 1000000

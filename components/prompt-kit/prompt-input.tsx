@@ -83,7 +83,7 @@ function PromptInput({
     >
       <div
         className={cn(
-          "border-input bg-background cursor-text rounded-3xl border p-2 shadow-xs",
+          "border-input bg-background/80 focus-within:border-ring/30 focus-within:ring-ring/5 cursor-text rounded-[26px] border p-2 shadow-sm transition-all duration-200 focus-within:ring-4",
           className
         )}
         onClick={() => {
@@ -133,7 +133,6 @@ function PromptInputTextarea({
   return (
     <Textarea
       ref={textareaRef}
-      autoFocus
       value={value}
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={handleKeyDown}

@@ -1,7 +1,5 @@
 import { readFromIndexedDB, writeToIndexedDB } from "@/lib/chat-store/persist"
 import type { Chat, Chats } from "@/lib/chat-store/types"
-import { createClient } from "@/lib/supabase/client"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
 import { MODEL_DEFAULT } from "../../config"
 import { fetchClient } from "../../fetch"
 import {
@@ -9,104 +7,48 @@ import {
   API_ROUTE_UPDATE_CHAT_MODEL,
 } from "../../routes"
 
-export async function getChatsForUserInDb(userId: string): Promise<Chats[]> {
-  const supabase = createClient()
-  if (!supabase) return []
-
-  const { data, error } = await supabase
-    .from("chats")
-    .select("*")
-    .eq("user_id", userId)
-    .order("pinned", { ascending: false })
-    .order("pinned_at", { ascending: false, nullsFirst: false })
-    .order("updated_at", { ascending: false })
-
-  if (!data || error) {
-    console.error("Failed to fetch chats:", error)
-    return []
+export async function getChatsFromServer(): Promise<Chats[]> {
+  // Fetch from API which uses Drizzle
+  try {
+    const res = await fetchClient("/api/chats", { method: "GET" })
+    if (res.ok) {
+      const data = await res.json()
+      const chats = (Array.isArray(data.chats) ? data.chats : []).filter(
+        Boolean
+      )
+      // Cache the results
+      if (chats.length > 0) {
+        await writeToIndexedDB("chats", chats)
+      }
+      return chats
+    }
+  } catch (error) {
+    console.error("Failed to fetch chats from server:", error)
   }
 
-  return data
+  // Fallback to cached
+  return getCachedChats()
 }
 
-export async function updateChatTitleInDb(id: string, title: string) {
-  const supabase = createClient()
-  if (!supabase) return
-
-  const { error } = await supabase
-    .from("chats")
-    .update({ title, updated_at: new Date().toISOString() })
-    .eq("id", id)
-  if (error) throw error
-}
-
-export async function deleteChatInDb(id: string) {
-  const supabase = createClient()
-  if (!supabase) return
-
-  const { error } = await supabase.from("chats").delete().eq("id", id)
-  if (error) throw error
-}
-
-export async function getAllUserChatsInDb(userId: string): Promise<Chats[]> {
-  const supabase = createClient()
-  if (!supabase) return []
-
-  const { data, error } = await supabase
-    .from("chats")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-
-  if (!data || error) return []
-  return data
-}
-
-export async function createChatInDb(
-  userId: string,
-  title: string,
-  model: string,
-  systemPrompt: string
-): Promise<string | null> {
-  const supabase = createClient()
-  if (!supabase) return null
-
-  const { data, error } = await supabase
-    .from("chats")
-    .insert({ user_id: userId, title, model, system_prompt: systemPrompt })
-    .select("id")
-    .single()
-
-  if (error || !data?.id) return null
-  return data.id
-}
-
-export async function fetchAndCacheChats(userId: string): Promise<Chats[]> {
-  if (!isSupabaseEnabled) {
-    return await getCachedChats()
-  }
-
-  const data = await getChatsForUserInDb(userId)
-
-  if (data.length > 0) {
-    await writeToIndexedDB("chats", data)
-  }
-
-  return data
+// Alias for backwards compatibility with provider
+export async function fetchAndCacheChats(_userId?: string): Promise<Chats[]> {
+  return getChatsFromServer()
 }
 
 export async function getCachedChats(): Promise<Chats[]> {
   const all = await readFromIndexedDB<Chats>("chats")
-  return (all as Chats[]).sort(
-    (a, b) => +new Date(b.created_at || "") - +new Date(a.created_at || "")
-  )
+  return (all as Chats[])
+    .filter(Boolean)
+    .sort(
+      (a, b) => +new Date(b.createdAt || "") - +new Date(a.createdAt || "")
+    )
 }
 
 export async function updateChatTitle(
   id: string,
   title: string
 ): Promise<void> {
-  await updateChatTitleInDb(id, title)
+  // Update locally for now
   const all = await getCachedChats()
   const updated = (all as Chats[]).map((c) =>
     c.id === id ? { ...c, title } : c
@@ -115,7 +57,6 @@ export async function updateChatTitle(
 }
 
 export async function deleteChat(id: string): Promise<void> {
-  await deleteChatInDb(id)
   const all = await getCachedChats()
   await writeToIndexedDB(
     "chats",
@@ -124,36 +65,62 @@ export async function deleteChat(id: string): Promise<void> {
 }
 
 export async function getChat(chatId: string): Promise<Chat | null> {
+  // First check cache
   const all = await readFromIndexedDB<Chat>("chats")
-  return (all as Chat[]).find((c) => c.id === chatId) || null
+  const cached = (all as Chat[]).find((c) => c.id === chatId)
+  if (cached) return cached
+
+  // Then try server
+  try {
+    const res = await fetchClient(`/api/chats/${chatId}`, { method: "GET" })
+    if (res.ok) {
+      const data = await res.json()
+      return data.chat
+    }
+  } catch (error) {
+    console.error("Failed to fetch chat from server:", error)
+  }
+
+  return null
 }
 
-export async function getUserChats(userId: string): Promise<Chat[]> {
-  const data = await getAllUserChatsInDb(userId)
-  if (!data) return []
-  await writeToIndexedDB("chats", data)
-  return data
-}
+export async function createNewChat(
+  title?: string,
+  model?: string
+): Promise<Chats> {
+  try {
+    const res = await fetchClient("/api/create-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: title || "New Chat",
+        model: model || MODEL_DEFAULT,
+      }),
+    })
 
-export async function createChat(
-  userId: string,
-  title: string,
-  model: string,
-  systemPrompt: string
-): Promise<string> {
-  const id = await createChatInDb(userId, title, model, systemPrompt)
-  const finalId = id ?? crypto.randomUUID()
+    const responseData = await res.json()
 
-  await writeToIndexedDB("chats", {
-    id: finalId,
-    title,
-    model,
-    user_id: userId,
-    system_prompt: systemPrompt,
-    created_at: new Date().toISOString(),
-  })
+    if (!res.ok || !responseData.chat) {
+      throw new Error(responseData.error || "Failed to create chat")
+    }
 
-  return finalId
+    const chat: Chats = {
+      id: responseData.chat.id,
+      title: responseData.chat.title,
+      createdAt: responseData.chat.createdAt,
+      model: responseData.chat.model,
+      sessionId: responseData.chat.sessionId,
+      updatedAt: responseData.chat.updatedAt,
+      pinned: responseData.chat.pinned ?? false,
+      pinnedAt: responseData.chat.pinnedAt ?? null,
+    }
+
+    await writeToIndexedDB("chats", chat)
+    return chat
+  } catch (error) {
+    console.error("Error creating new chat:", error)
+    throw error
+  }
 }
 
 export async function updateChatModel(chatId: string, model: string) {
@@ -208,64 +175,6 @@ export async function toggleChatPin(chatId: string, pinned: boolean) {
     return responseData
   } catch (error) {
     console.error("Error updating chat pinned:", error)
-    throw error
-  }
-}
-
-export async function createNewChat(
-  userId: string,
-  title?: string,
-  model?: string,
-  isAuthenticated?: boolean,
-  projectId?: string
-): Promise<Chats> {
-  try {
-    const payload: {
-      userId: string
-      title: string
-      model: string
-      isAuthenticated?: boolean
-      projectId?: string
-    } = {
-      userId,
-      title: title || "New Chat",
-      model: model || MODEL_DEFAULT,
-      isAuthenticated,
-    }
-
-    if (projectId) {
-      payload.projectId = projectId
-    }
-
-    const res = await fetchClient("/api/create-chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-
-    const responseData = await res.json()
-
-    if (!res.ok || !responseData.chat) {
-      throw new Error(responseData.error || "Failed to create chat")
-    }
-
-    const chat: Chats = {
-      id: responseData.chat.id,
-      title: responseData.chat.title,
-      created_at: responseData.chat.created_at,
-      model: responseData.chat.model,
-      user_id: responseData.chat.user_id,
-      public: responseData.chat.public,
-      updated_at: responseData.chat.updated_at,
-      project_id: responseData.chat.project_id || null,
-      pinned: responseData.chat.pinned ?? false,
-      pinned_at: responseData.chat.pinned_at ?? null,
-    }
-
-    await writeToIndexedDB("chats", chat)
-    return chat
-  } catch (error) {
-    console.error("Error creating new chat:", error)
     throw error
   }
 }

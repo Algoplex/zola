@@ -10,7 +10,7 @@ import { SYSTEM_PROMPT_DEFAULT } from "@/lib/config"
 import { useModel } from "@/lib/model-store/provider"
 import { useUser } from "@/lib/user-store/provider"
 import { cn } from "@/lib/utils"
-import { Message as MessageType } from "@ai-sdk/react"
+import { UIMessage as MessageType } from "@ai-sdk/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useMemo, useState } from "react"
 import { MultiChatInput } from "./multi-chat-input"
@@ -27,6 +27,12 @@ type GroupedMessage = {
   onDelete: (model: string, id: string) => void
   onEdit: (model: string, id: string, newText: string) => void
   onReload: (model: string) => void
+}
+
+// Helper to extract text from UIMessage parts
+const getTextContent = (msg: MessageType): string => {
+  const textPart = msg.parts?.find((p) => p.type === "text")
+  return textPart?.text || ""
 }
 
 export function MultiChat() {
@@ -86,10 +92,10 @@ export function MultiChat() {
 
   const modelChats = useMultiChat(allModelsToMaintain)
   const systemPrompt = useMemo(
-    () => user?.system_prompt || SYSTEM_PROMPT_DEFAULT,
-    [user?.system_prompt]
+    () => user?.systemPrompt || SYSTEM_PROMPT_DEFAULT,
+    [user?.systemPrompt]
   )
-  const isAuthenticated = useMemo(() => !!user?.id, [user?.id])
+  const isAuthenticated = useMemo(() => Boolean(user?.id), [user?.id])
 
   const createPersistedGroups = useCallback(() => {
     const persistedGroups: { [key: string]: GroupedMessage } = {}
@@ -107,7 +113,7 @@ export function MultiChat() {
       const message = persistedMessages[i]
 
       if (message.role === "user") {
-        const groupKey = message.content
+        const groupKey = getTextContent(message)
         if (!groups[groupKey]) {
           groups[groupKey] = {
             userMessage: message,
@@ -124,7 +130,7 @@ export function MultiChat() {
         }
 
         if (associatedUserMessage) {
-          const groupKey = associatedUserMessage.content
+          const groupKey = getTextContent(associatedUserMessage)
           if (!groups[groupKey]) {
             groups[groupKey] = {
               userMessage: associatedUserMessage,
@@ -173,7 +179,7 @@ export function MultiChat() {
         const assistantMsg = chat.messages[i + 1]
 
         if (userMsg?.role === "user") {
-          const groupKey = userMsg.content
+          const groupKey = getTextContent(userMsg)
 
           if (!liveGroups[groupKey]) {
             liveGroups[groupKey] = {
@@ -200,13 +206,13 @@ export function MultiChat() {
             }
           } else if (
             chat.isLoading &&
-            userMsg.content === prompt &&
+            getTextContent(userMsg) === prompt &&
             selectedModelIds.includes(chat.model.id)
           ) {
             const placeholderMessage: MessageType = {
               id: `loading-${chat.model.id}`,
               role: "assistant",
-              content: "",
+              parts: [{ type: "text", text: "" }],
             }
             liveGroups[groupKey].responses.push({
               model: chat.model.id,
@@ -248,7 +254,7 @@ export function MultiChat() {
           uid,
           prompt,
           selectedModelIds[0],
-          !!user?.id
+          Boolean(user?.id)
         )
         if (!createdChat) {
           throw new Error("Failed to create chat")
@@ -269,14 +275,14 @@ export function MultiChat() {
               chatId: chatIdToUse,
               userId: uid,
               model: chat.model.id,
-              isAuthenticated: !!user?.id,
+              isAuthenticated: Boolean(user?.id),
               systemPrompt: systemPrompt,
               enableSearch: false,
               message_group_id,
             },
           }
 
-          chat.append({ role: "user", content: prompt }, options)
+          chat.sendMessage({ text: prompt }, options)
         })
       )
 
@@ -381,7 +387,7 @@ export function MultiChat() {
             transition={{ layout: { duration: 0 } }}
           >
             <h1 className="mb-6 text-3xl font-medium tracking-tight">
-              What's on your mind?
+              What can I help you with?
             </h1>
           </motion.div>
         ) : (

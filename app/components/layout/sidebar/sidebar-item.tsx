@@ -127,8 +127,8 @@ export function SidebarItem({ chat, currentChatId }: SidebarItemProps) {
   const containerClassName = useMemo(
     () =>
       cn(
-        "hover:bg-accent/80 hover:text-foreground group/chat relative w-full rounded-md transition-colors",
-        isActive && "bg-accent hover:bg-accent text-foreground"
+        "hover:bg-sidebar-accent/80 hover:text-sidebar-foreground group/chat relative w-full rounded-md transition-colors",
+        isActive && "bg-sidebar-accent text-sidebar-foreground"
       ),
     [isActive]
   )
@@ -149,26 +149,26 @@ export function SidebarItem({ chat, currentChatId }: SidebarItemProps) {
       ref={containerRef}
     >
       {isEditing ? (
-        <div className="bg-accent flex items-center rounded-md py-1 pr-1 pl-2">
+        <div className="bg-sidebar-accent flex items-center rounded-md py-1 pr-1 pl-2">
           <input
             ref={inputRef}
             value={editTitle}
             onChange={handleInputChange}
-            className="text-primary max-h-full w-full bg-transparent text-sm focus:outline-none"
+            className="text-sidebar-foreground max-h-full w-full bg-transparent text-sm focus:outline-none"
             onKeyDown={handleKeyDown}
             autoFocus
           />
           <div className="flex gap-0.5">
             <button
               onClick={handleSaveClick}
-              className="hover:bg-secondary text-muted-foreground hover:text-primary flex size-7 items-center justify-center rounded-md p-1 transition-colors duration-150"
+              className="hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground flex size-7 items-center justify-center rounded-md p-1 transition-colors duration-150"
               type="button"
             >
               <Check size={16} weight="bold" />
             </button>
             <button
               onClick={handleCancelClick}
-              className="hover:bg-secondary text-muted-foreground hover:text-primary flex size-7 items-center justify-center rounded-md p-1 transition-colors duration-150"
+              className="hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground flex size-7 items-center justify-center rounded-md p-1 transition-colors duration-150"
               type="button"
             >
               <X size={16} weight="bold" />
@@ -184,7 +184,7 @@ export function SidebarItem({ chat, currentChatId }: SidebarItemProps) {
             onClick={handleLinkClick}
           >
             <div
-              className="text-primary relative line-clamp-1 mask-r-from-80% mask-r-to-85% px-2 py-2 text-sm text-ellipsis whitespace-nowrap"
+              className="text-sidebar-foreground/90 relative line-clamp-1 mask-r-from-80% mask-r-to-85% px-2 py-2 text-sm text-ellipsis whitespace-nowrap"
               title={displayTitle}
             >
               {displayTitle}

@@ -1,5 +1,5 @@
-import type { Tables } from "@/app/types/database.types"
+import type { Chat as DbChat, Message as DbMessage } from "@/lib/db"
 
-export type Chat = Tables<"chats">
-export type Message = Tables<"messages">
-export type Chats = Tables<"chats">
+export type Chat = DbChat
+export type Message = DbMessage
+export type Chats = DbChat

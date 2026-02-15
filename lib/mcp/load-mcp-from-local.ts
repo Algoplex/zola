@@ -1,18 +1,11 @@
-import { experimental_createMCPClient as createMCPClient } from "ai"
-import { Experimental_StdioMCPTransport as StdioMCPTransport } from "ai/mcp-stdio"
+// MCP support has been removed in AI SDK v6
+// These are stub implementations that return empty tools
 
 export async function loadMCPToolsFromLocal(
-  command: string,
-  env: Record<string, string> = {}
+  _command: string,
+  _env: Record<string, string> = {}
 ) {
-  const mcpClient = await createMCPClient({
-    transport: new StdioMCPTransport({
-      command,
-      args: ["stdio"],
-      env,
-    }),
-  })
-
-  const tools = await mcpClient.tools()
-  return { tools, close: () => mcpClient.close() }
+  // MCP support removed in AI SDK v6
+  // Return empty tools for backwards compatibility
+  return { tools: [], close: () => {} }
 }

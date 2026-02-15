@@ -29,15 +29,14 @@ export function groupChatsByDate(
   const olderChats: Record<number, Chats[]> = {}
 
   chats.forEach((chat) => {
-    if (chat.project_id) return
     if (chat.pinned) return
 
-    if (!chat.updated_at) {
+    if (!chat.updatedAt) {
       todayChats.push(chat)
       return
     }
 
-    const chatTimestamp = new Date(chat.updated_at).getTime()
+    const chatTimestamp = new Date(chat.updatedAt).getTime()
 
     if (chatTimestamp >= today) {
       todayChats.push(chat)
@@ -48,7 +47,7 @@ export function groupChatsByDate(
     } else if (chatTimestamp >= yearStart) {
       thisYearChats.push(chat)
     } else {
-      const year = new Date(chat.updated_at).getFullYear()
+      const year = new Date(chat.updatedAt).getFullYear()
       if (!olderChats[year]) {
         olderChats[year] = []
       }

@@ -1,39 +1,24 @@
-import { createClient } from "@/lib/supabase/server"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { toggleChatPin } from "@/lib/db/chat"
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { chatId, pinned } = await request.json()
+    const { chatId } = await request.json()
 
-    if (!chatId || typeof pinned !== "boolean") {
+    if (!chatId) {
+      return NextResponse.json({ error: "Missing chatId" }, { status: 400 })
+    }
+
+    const chat = await toggleChatPin(chatId)
+
+    if (!chat) {
       return NextResponse.json(
-        { error: "Missing chatId or pinned" },
-        { status: 400 }
+        { error: "Failed to toggle pin or chat not found" },
+        { status: 404 }
       )
     }
 
-    if (!supabase) {
-      return NextResponse.json({ success: true }, { status: 200 })
-    }
-
-    const toggle = pinned
-      ? { pinned: true, pinned_at: new Date().toISOString() }
-      : { pinned: false, pinned_at: null }
-
-    const { error } = await supabase
-      .from("chats")
-      .update(toggle)
-      .eq("id", chatId)
-
-    if (error) {
-      return NextResponse.json(
-        { error: "Failed to update pinned" },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({ success: true }, { status: 200 })
+    return NextResponse.json({ success: true, chat })
   } catch (error) {
     console.error("toggle-chat-pin unhandled error:", error)
     return NextResponse.json(

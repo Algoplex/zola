@@ -222,7 +222,14 @@ export function DrawerHistory({
                   {chat.title || "Untitled Chat"}
                 </span>
                 <span className="mr-2 text-xs font-normal text-gray-500">
-                  {formatDate(chat?.updated_at || chat?.created_at)}
+                  {formatDate(
+                    typeof chat?.updatedAt === "string"
+                      ? chat.updatedAt
+                      : chat?.updatedAt?.toISOString() ||
+                          (typeof chat?.createdAt === "string"
+                            ? chat.createdAt
+                            : chat?.createdAt?.toISOString())
+                  )}
                 </span>
               </Link>
               <div className="flex items-center">

@@ -1,25 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
-import { getEffectiveApiKey, ProviderWithoutOllama } from "@/lib/user-keys"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const { provider, userId } = await request.json()
-
-    const supabase = await createClient()
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database not available" },
-        { status: 500 }
-      )
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user || user.id !== userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const { provider } = await request.json()
 
     // Skip Ollama since it doesn't use API keys
     if (provider === "ollama") {
@@ -29,12 +12,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const apiKey = await getEffectiveApiKey(
-      userId,
-      provider as ProviderWithoutOllama
-    )
-
-    const envKeyMap: Record<ProviderWithoutOllama, string | undefined> = {
+    // Return which providers have environment keys
+    const envKeyMap: Record<string, string | undefined> = {
       openai: process.env.OPENAI_API_KEY,
       mistral: process.env.MISTRAL_API_KEY,
       perplexity: process.env.PERPLEXITY_API_KEY,
@@ -44,9 +23,10 @@ export async function POST(request: NextRequest) {
       openrouter: process.env.OPENROUTER_API_KEY,
     }
 
+    const hasEnvKey = Boolean(envKeyMap[provider])
+
     return NextResponse.json({
-      hasUserKey:
-        !!apiKey && apiKey !== envKeyMap[provider as ProviderWithoutOllama],
+      hasUserKey: hasEnvKey,
       provider,
     })
   } catch (error) {

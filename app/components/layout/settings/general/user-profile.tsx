@@ -14,17 +14,17 @@ export function UserProfile() {
       <h3 className="mb-3 text-sm font-medium">Profile</h3>
       <div className="flex items-center space-x-4">
         <div className="bg-muted flex items-center justify-center overflow-hidden rounded-full">
-          {user?.profile_image ? (
+          {user?.profileImage ? (
             <Avatar className="size-12">
-              <AvatarImage src={user.profile_image} className="object-cover" />
-              <AvatarFallback>{user?.display_name?.charAt(0)}</AvatarFallback>
+              <AvatarImage src={user.profileImage} className="object-cover" />
+              <AvatarFallback>{user?.displayName?.charAt(0)}</AvatarFallback>
             </Avatar>
           ) : (
             <User className="text-muted-foreground size-12" />
           )}
         </div>
         <div>
-          <h4 className="text-sm font-medium">{user?.display_name}</h4>
+          <h4 className="text-sm font-medium">{user?.displayName}</h4>
           <p className="text-muted-foreground text-sm">{user?.email}</p>
         </div>
       </div>

@@ -1,13 +1,8 @@
-import { experimental_createMCPClient as createMCPClient } from "ai"
+// MCP support has been removed in AI SDK v6
+// These are stub implementations that return empty tools
 
-export async function loadMCPToolsFromURL(url: string) {
-  const mcpClient = await createMCPClient({
-    transport: {
-      type: "sse",
-      url,
-    },
-  })
-
-  const tools = await mcpClient.tools()
-  return { tools, close: () => mcpClient.close() }
+export async function loadMCPToolsFromURL(_url: string) {
+  // MCP support removed in AI SDK v6
+  // Return empty tools for backwards compatibility
+  return { tools: [], close: () => {} }
 }

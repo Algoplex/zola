@@ -9,7 +9,22 @@ interface ChatMessage {
   id: string
   content: string
   role: "user" | "assistant"
-  created_at: string
+  createdAt: string
+}
+
+function extractMessageContent(message: { content?: string; parts?: any }) {
+  if (typeof message.content === "string" && message.content) {
+    return message.content
+  }
+
+  if (Array.isArray(message.parts)) {
+    return message.parts
+      .filter((part: any) => part?.type === "text")
+      .map((part: any) => part?.text || "")
+      .join("")
+  }
+
+  return ""
 }
 
 interface UseChatPreviewReturn {
@@ -68,9 +83,9 @@ export function useChatPreview(): UseChatPreviewReturn {
               .slice(-5) // Get last 5 messages
               .map((msg) => ({
                 id: msg.id,
-                content: msg.content,
+                content: extractMessageContent(msg),
                 role: msg.role as "user" | "assistant",
-                created_at:
+                createdAt:
                   msg.createdAt?.toISOString() || new Date().toISOString(),
               }))
             setMessages(cachedMessages)
@@ -92,9 +107,9 @@ export function useChatPreview(): UseChatPreviewReturn {
               .slice(-5) // Get last 5 messages
               .map((msg) => ({
                 id: msg.id,
-                content: msg.content,
+                content: extractMessageContent(msg),
                 role: msg.role as "user" | "assistant",
-                created_at:
+                createdAt:
                   msg.createdAt?.toISOString() || new Date().toISOString(),
               }))
             setMessages(freshMessages)

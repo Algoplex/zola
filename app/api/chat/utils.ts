@@ -1,4 +1,8 @@
-import { Message as MessageAISDK } from "ai"
+type MessageAI = {
+  role: "user" | "assistant" | "system" | "tool"
+  content: string
+  toolInvocations?: unknown[]
+}
 
 /**
  * Clean messages when switching between agents with different tool capabilities.
@@ -6,9 +10,9 @@ import { Message as MessageAISDK } from "ai"
  * to prevent OpenAI API errors.
  */
 export function cleanMessagesForTools(
-  messages: MessageAISDK[],
+  messages: MessageAI[],
   hasTools: boolean
-): MessageAISDK[] {
+): MessageAI[] {
   if (hasTools) {
     return messages
   }
@@ -17,13 +21,12 @@ export function cleanMessagesForTools(
   const cleanedMessages = messages
     .map((message) => {
       // Skip tool messages entirely when no tools are available
-      // Note: Using type assertion since AI SDK types might not include 'tool' role
-      if ((message as { role: string }).role === "tool") {
+      if (message.role === "tool") {
         return null
       }
 
       if (message.role === "assistant") {
-        const cleanedMessage: MessageAISDK = { ...message }
+        const cleanedMessage: MessageAI = { ...message }
 
         if (message.toolInvocations && message.toolInvocations.length > 0) {
           delete cleanedMessage.toolInvocations
@@ -106,7 +109,7 @@ export function cleanMessagesForTools(
 
       return message
     })
-    .filter((message): message is MessageAISDK => message !== null)
+    .filter((message): message is MessageAI => message !== null)
 
   return cleanedMessages
 }
@@ -114,8 +117,8 @@ export function cleanMessagesForTools(
 /**
  * Check if a message contains tool-related content
  */
-export function messageHasToolContent(message: MessageAISDK): boolean {
-  return !!(
+export function messageHasToolContent(message: MessageAI): boolean {
+  return Boolean(
     message.toolInvocations?.length ||
     (message as { role: string }).role === "tool" ||
     (Array.isArray(message.content) &&
@@ -233,7 +236,7 @@ export function handleStreamError(err: unknown): ApiError {
  */
 export function extractErrorMessage(error: unknown): string {
   // Handle null/undefined
-  if (error == null) {
+  if (error === null || error === undefined) {
     return "An unknown error occurred."
   }
 

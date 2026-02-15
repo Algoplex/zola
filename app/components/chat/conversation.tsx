@@ -4,13 +4,28 @@ import {
 } from "@/components/prompt-kit/chat-container"
 import { Loader } from "@/components/prompt-kit/loader"
 import { ScrollButton } from "@/components/prompt-kit/scroll-button"
-import { ExtendedMessageAISDK } from "@/lib/chat-store/messages/api"
-import { Message as MessageType } from "@ai-sdk/react"
 import { useRef } from "react"
 import { Message } from "./message"
+import { ExtendedMessageAI } from "@/lib/chat-store/messages/api"
+
+// Extract text content from UIMessage parts array (AI SDK v6)
+function getMessageContent(message: any): string {
+  // First try legacy content field
+  if (typeof message.content === "string" && message.content) {
+    return message.content
+  }
+  // Then extract from parts array (AI SDK v6)
+  if (Array.isArray(message.parts)) {
+    return message.parts
+      .filter((part: any) => part.type === "text")
+      .map((part: any) => part.text || "")
+      .join("")
+  }
+  return ""
+}
 
 type ConversationProps = {
-  messages: MessageType[]
+  messages: any[]
   status?: "streaming" | "ready" | "submitted" | "error"
   onDelete: (id: string) => void
   onEdit: (id: string, newText: string) => void
@@ -33,6 +48,11 @@ export function Conversation({
   if (!messages || messages.length === 0)
     return <div className="h-full w-full"></div>
 
+  // Deduplicate messages by id (AI SDK v6 may have duplicates during streaming)
+  const uniqueMessages = messages.filter(
+    (msg, index, self) => index === self.findIndex((m) => m.id === msg.id)
+  )
+
   return (
     <div className="relative flex h-full w-full flex-col items-center overflow-x-hidden overflow-y-auto">
       <div className="pointer-events-none absolute top-0 right-0 left-0 z-10 mx-auto flex w-full flex-col justify-center">
@@ -47,12 +67,13 @@ export function Conversation({
             scrollbarWidth: "none",
           }}
         >
-          {messages?.map((message, index) => {
+          {uniqueMessages.map((message, index) => {
             const isLast =
-              index === messages.length - 1 && status !== "submitted"
+              index === uniqueMessages.length - 1 && status !== "submitted"
             const hasScrollAnchor =
-              isLast && messages.length > initialMessageCount.current
+              isLast && uniqueMessages.length > initialMessageCount.current
 
+            /* FIXME(@ai-sdk-upgrade-v5): The `experimental_attachments` property has been replaced with the parts array. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#attachments--file-parts */
             return (
               <Message
                 key={message.id}
@@ -68,17 +89,17 @@ export function Conversation({
                 status={status}
                 onQuote={onQuote}
                 messageGroupId={
-                  (message as ExtendedMessageAISDK).message_group_id ?? null
+                  (message as ExtendedMessageAI).message_group_id ?? null
                 }
                 isUserAuthenticated={isUserAuthenticated}
               >
-                {message.content}
+                {getMessageContent(message)}
               </Message>
             )
           })}
           {status === "submitted" &&
-            messages.length > 0 &&
-            messages[messages.length - 1].role === "user" && (
+            uniqueMessages.length > 0 &&
+            uniqueMessages[uniqueMessages.length - 1].role === "user" && (
               <div className="group min-h-scroll-anchor flex w-full max-w-3xl flex-col items-start gap-2 px-6 pb-2">
                 <Loader />
               </div>

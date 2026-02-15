@@ -714,12 +714,10 @@ You can customize various aspects of Zola by modifying the configuration files:
 ### Common Issues
 
 1. **Connection to Supabase fails**
-
    - Check your Supabase URL and API keys
    - Ensure your IP address is allowed in Supabase
 
 2. **AI models not responding**
-
    - Verify your API keys for OpenAI/Mistral
    - Check that the models specified in config are available
 

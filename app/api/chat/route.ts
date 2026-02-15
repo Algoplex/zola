@@ -1,88 +1,87 @@
-import { SYSTEM_PROMPT_DEFAULT } from "@/lib/config"
-import { getAllModels } from "@/lib/models"
-import { getProviderForModel } from "@/lib/openproviders/provider-map"
-import type { ProviderWithoutOllama } from "@/lib/user-keys"
-import { Attachment } from "@ai-sdk/ui-utils"
-import { Message as MessageAISDK, streamText, ToolSet } from "ai"
 import {
-  incrementMessageCount,
+  createChatInDb,
+  getChatById,
   logUserMessage,
   storeAssistantMessage,
-  validateAndTrackUsage,
-} from "./api"
-import { createErrorResponse, extractErrorMessage } from "./utils"
+  updateChatInDb,
+} from "@/lib/db/chat"
+import { getAllModels } from "@/lib/models"
+import { sanitizeUserInput } from "@/lib/sanitize"
+import { convertToModelMessages, streamText, ToolSet } from "ai"
+import { NextRequest, NextResponse } from "next/server"
+
+type MessageAI = {
+  role: "user" | "assistant" | "system"
+  content?: string | Array<{ type: string; text?: string }>
+  /* FIXME(@ai-sdk-upgrade-v5): The `experimental_attachments` property has been replaced with the parts array. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#attachments--file-parts */
+  experimental_attachments?: unknown[]
+  parts?: Array<{ type: string; text?: string }>
+}
 
 export const maxDuration = 60
 
 type ChatRequest = {
-  messages: MessageAISDK[]
+  messages: MessageAI[]
   chatId: string
-  userId: string
   model: string
-  isAuthenticated: boolean
-  systemPrompt: string
-  enableSearch: boolean
+  systemPrompt?: string
+  enableSearch?: boolean
   message_group_id?: string
   editCutoffTimestamp?: string
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const {
       messages,
       chatId,
-      userId,
       model,
-      isAuthenticated,
       systemPrompt,
       enableSearch,
       message_group_id,
-      editCutoffTimestamp,
     } = (await req.json()) as ChatRequest
 
-    if (!messages || !chatId || !userId) {
+    if (!messages || !chatId || !model) {
       return new Response(
-        JSON.stringify({ error: "Error, missing information" }),
+        JSON.stringify({ error: "Missing required fields" }),
         { status: 400 }
       )
     }
 
-    const supabase = await validateAndTrackUsage({
-      userId,
-      model,
-      isAuthenticated,
+    const normalizedMessages = messages.map((message) => {
+      if (message.content !== undefined) return message
+      if (message.parts && message.parts.length > 0) {
+        return { ...message, content: message.parts }
+      }
+      return { ...message, content: "" }
     })
 
-    // Increment message count for successful validation
-    if (supabase) {
-      await incrementMessageCount({ supabase, userId })
+    // Verify chat belongs to this session
+    const chat = await getChatById(chatId)
+    if (!chat) {
+      return new Response(JSON.stringify({ error: "Chat not found" }), {
+        status: 404,
+      })
     }
 
-    const userMessage = messages[messages.length - 1]
+    const userMessage = normalizedMessages[normalizedMessages.length - 1]
 
-    // If editing, delete messages from cutoff BEFORE saving the new user message
-    if (supabase && editCutoffTimestamp) {
-      try {
-        await supabase
-          .from("messages")
-          .delete()
-          .eq("chat_id", chatId)
-          .gte("created_at", editCutoffTimestamp)
-      } catch (err) {
-        console.error("Failed to delete messages from cutoff:", err)
-      }
-    }
-
-    if (supabase && userMessage?.role === "user") {
+    // Save user message
+    if (userMessage?.role === "user") {
+      /* FIXME(@ai-sdk-upgrade-v5): The `experimental_attachments` property has been replaced with the parts array. Please manually migrate following https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0#attachments--file-parts */
       await logUserMessage({
-        supabase,
-        userId,
         chatId,
-        content: userMessage.content,
-        attachments: userMessage.experimental_attachments as Attachment[],
+        content: sanitizeUserInput(
+          typeof userMessage.content === "string"
+            ? userMessage.content
+            : (userMessage.content || [])
+                .map((part) => part.text || "")
+                .join("")
+        ),
+        role: "user",
         model,
-        isAuthenticated,
-        message_group_id,
+        experimentalAttachments: userMessage.experimental_attachments,
+        messageGroupId: message_group_id,
       })
     }
 
@@ -93,58 +92,40 @@ export async function POST(req: Request) {
       throw new Error(`Model ${model} not found`)
     }
 
-    const effectiveSystemPrompt = systemPrompt || SYSTEM_PROMPT_DEFAULT
-
-    let apiKey: string | undefined
-    if (isAuthenticated && userId) {
-      const { getEffectiveApiKey } = await import("@/lib/user-keys")
-      const provider = getProviderForModel(model)
-      apiKey =
-        (await getEffectiveApiKey(userId, provider as ProviderWithoutOllama)) ||
-        undefined
-    }
+    // For now, allow all models without API key requirements
+    // TODO: Add API key support if needed
+    const SYSTEM_PROMPT_DEFAULT = `You are Zola, an AI assistant.`
 
     const result = streamText({
-      model: modelConfig.apiSdk(apiKey, { enableSearch }),
-      system: effectiveSystemPrompt,
-      messages: messages,
+      model: modelConfig.apiSdk?.() ?? model,
+      system: systemPrompt || SYSTEM_PROMPT_DEFAULT,
+      messages: await convertToModelMessages(normalizedMessages as any),
       tools: {} as ToolSet,
-      maxSteps: 10,
       onError: (err: unknown) => {
         console.error("Streaming error occurred:", err)
-        // Don't set streamError anymore - let the AI SDK handle it through the stream
       },
-
       onFinish: async ({ response }) => {
-        if (supabase) {
-          await storeAssistantMessage({
-            supabase,
-            chatId,
-            messages:
-              response.messages as unknown as import("@/app/types/api.types").Message[],
-            message_group_id,
-            model,
-          })
-        }
+        await storeAssistantMessage({
+          chatId,
+          messages: response.messages as unknown as Array<{
+            role: string
+            content: string
+            parts?: any
+          }>,
+          messageGroupId: message_group_id,
+          model,
+        })
       },
     })
 
-    return result.toDataStreamResponse({
-      sendReasoning: true,
-      sendSources: true,
-      getErrorMessage: (error: unknown) => {
-        console.error("Error forwarded to client:", error)
-        return extractErrorMessage(error)
-      },
-    })
+    return result.toUIMessageStreamResponse()
   } catch (err: unknown) {
     console.error("Error in /api/chat:", err)
-    const error = err as {
-      code?: string
-      message?: string
-      statusCode?: number
-    }
+    const error = err as { message?: string; statusCode?: number }
 
-    return createErrorResponse(error)
+    return NextResponse.json(
+      { error: error.message || "An error occurred" },
+      { status: error.statusCode || 500 }
+    )
   }
 }

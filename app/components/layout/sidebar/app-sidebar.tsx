@@ -1,33 +1,32 @@
 "use client"
 
+import { HistoryTrigger } from "@/app/components/history/history-trigger"
 import { groupChatsByDate } from "@/app/components/history/utils"
+import { ButtonNewChat } from "@/app/components/layout/button-new-chat"
 import { useBreakpoint } from "@/app/hooks/use-breakpoint"
+import { OpenAIIcon } from "@/components/icons/openai"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useChats } from "@/lib/chat-store/chats/provider"
 import {
   ChatTeardropText,
-  GithubLogo,
   MagnifyingGlass,
-  NotePencilIcon,
+  SidebarSimple,
   X,
 } from "@phosphor-icons/react"
 import { Pin } from "lucide-react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import { useMemo } from "react"
-import { HistoryTrigger } from "../../history/history-trigger"
 import { SidebarList } from "./sidebar-list"
-import { SidebarProject } from "./sidebar-project"
 
 export function AppSidebar() {
   const isMobile = useBreakpoint(768)
-  const { setOpenMobile } = useSidebar()
+  const { setOpenMobile, toggleSidebar, state } = useSidebar()
   const { chats, pinnedChats, isLoading } = useChats()
   const params = useParams<{ chatId: string }>()
   const currentChatId = params.chatId
@@ -37,75 +36,118 @@ export function AppSidebar() {
     return result
   }, [chats])
   const hasChats = chats.length > 0
-  const router = useRouter()
 
   return (
     <Sidebar
-      collapsible="offcanvas"
+      collapsible="icon"
       variant="sidebar"
-      className="border-border/40 border-r bg-transparent"
+      className="bg-sidebar text-sidebar-foreground border-none"
     >
-      <SidebarHeader className="h-14 pl-3">
-        <div className="flex justify-between">
-          {isMobile ? (
+      {!isMobile && (
+        <SidebarHeader className="px-2 pt-2 pb-1">
+          <div
+            className={
+              state === "collapsed"
+                ? "flex items-center justify-center"
+                : "flex items-center justify-between"
+            }
+          >
+            {state === "collapsed" ? (
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="group/toggle text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent inline-flex size-9 items-center justify-center rounded-lg transition-colors"
+                title="Expand sidebar"
+              >
+                <span className="relative size-5">
+                  <OpenAIIcon className="absolute inset-0 size-5 text-black opacity-100 transition-opacity group-hover/toggle:opacity-0 dark:text-white" />
+                  <SidebarSimple className="absolute inset-0 size-5 opacity-0 transition-opacity group-hover/toggle:opacity-100" />
+                </span>
+              </button>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <OpenAIIcon className="size-5 text-black dark:text-white" />
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent inline-flex size-9 items-center justify-center rounded-lg transition-colors"
+                  title="Collapse sidebar"
+                >
+                  <SidebarSimple className="size-5" />
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-col gap-2">
+            {state === "collapsed" ? (
+              <>
+                <ButtonNewChat
+                  showOnHome
+                  iconSize={20}
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent inline-flex size-9 items-center justify-center rounded-lg bg-transparent"
+                />
+                <HistoryTrigger
+                  hasSidebar={false}
+                  classNameTrigger="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent inline-flex size-9 items-center justify-center rounded-lg bg-transparent"
+                  icon={<MagnifyingGlass size={18} />}
+                />
+              </>
+            ) : (
+              <ButtonNewChat
+                showLabel
+                showOnHome
+                iconSize={20}
+                className="text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent inline-flex w-full items-center rounded-lg"
+              />
+            )}
+          </div>
+        </SidebarHeader>
+      )}
+      {isMobile && (
+        <SidebarHeader className="h-14 px-3">
+          <div className="flex items-center justify-end">
             <button
               type="button"
               onClick={() => setOpenMobile(false)}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted inline-flex size-9 items-center justify-center rounded-md bg-transparent transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+              className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent inline-flex size-10 items-center justify-center rounded-xl transition-colors"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
-          ) : (
-            <div className="h-full" />
-          )}
-        </div>
-      </SidebarHeader>
-      <SidebarContent className="border-border/40 border-t">
-        <ScrollArea className="flex h-full px-3 [&>div>div]:!block">
-          <div className="mt-3 mb-5 flex w-full flex-col items-start gap-0">
-            <button
-              className="hover:bg-accent/80 hover:text-foreground text-primary group/new-chat relative inline-flex w-full items-center rounded-md bg-transparent px-2 py-2 text-sm transition-colors"
-              type="button"
-              onClick={() => router.push("/")}
-            >
-              <div className="flex items-center gap-2">
-                <NotePencilIcon size={20} />
-                New Chat
-              </div>
-              <div className="text-muted-foreground ml-auto text-xs opacity-0 duration-150 group-hover/new-chat:opacity-100">
-                ⌘⇧U
-              </div>
-            </button>
+          </div>
+        </SidebarHeader>
+      )}
+      <SidebarContent
+        className={
+          isMobile
+            ? ""
+            : "pt-2 transition-[opacity,transform] duration-200 ease-linear group-data-[state=collapsed]:pointer-events-none group-data-[state=collapsed]:-translate-x-2 group-data-[state=collapsed]:opacity-0"
+        }
+      >
+        <ScrollArea className="flex h-full px-2 pb-4 [&>div>div]:!block">
+          <div className="mb-4">
             <HistoryTrigger
               hasSidebar={false}
-              classNameTrigger="bg-transparent hover:bg-accent/80 hover:text-foreground text-primary relative inline-flex w-full items-center rounded-md px-2 py-2 text-sm transition-colors group/search"
-              icon={<MagnifyingGlass size={24} className="mr-2" />}
-              label={
-                <div className="flex w-full items-center gap-2">
-                  <span>Search</span>
-                  <div className="text-muted-foreground ml-auto text-xs opacity-0 duration-150 group-hover/search:opacity-100">
-                    ⌘+K
-                  </div>
-                </div>
-              }
+              classNameTrigger="bg-sidebar-accent text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/80 relative inline-flex w-full items-center rounded-lg px-3 py-2 text-sm transition-colors"
+              icon={<MagnifyingGlass size={16} className="mr-2.5 opacity-70" />}
+              label={<span className="opacity-80">Search</span>}
               hasPopover={false}
             />
           </div>
-          <SidebarProject />
           {isLoading ? (
             <div className="h-full" />
           ) : hasChats ? (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {pinnedChats.length > 0 && (
-                <div className="space-y-5">
-                  <SidebarList
-                    key="pinned"
-                    title="Pinned"
-                    icon={<Pin className="size-3" />}
-                    items={pinnedChats}
-                    currentChatId={currentChatId}
-                  />
-                </div>
+                <SidebarList
+                  key="pinned"
+                  title="Pinned"
+                  icon={<Pin className="size-3" />}
+                  items={pinnedChats}
+                  currentChatId={currentChatId}
+                />
               )}
               {groupedChats?.map((group) => (
                 <SidebarList
@@ -120,9 +162,9 @@ export function AppSidebar() {
             <div className="flex h-[calc(100vh-160px)] flex-col items-center justify-center">
               <ChatTeardropText
                 size={24}
-                className="text-muted-foreground mb-1 opacity-40"
+                className="text-sidebar-foreground/50 mb-1"
               />
-              <div className="text-muted-foreground text-center">
+              <div className="text-sidebar-foreground/70 text-center">
                 <p className="mb-1 text-base font-medium">No chats yet</p>
                 <p className="text-sm opacity-70">Start a new conversation</p>
               </div>
@@ -130,26 +172,6 @@ export function AppSidebar() {
           )}
         </ScrollArea>
       </SidebarContent>
-      <SidebarFooter className="border-border/40 mb-2 border-t p-3">
-        <a
-          href="https://github.com/ibelick/zola"
-          className="hover:bg-muted flex items-center gap-2 rounded-md p-2"
-          target="_blank"
-          aria-label="Star the repo on GitHub"
-        >
-          <div className="rounded-full border p-1">
-            <GithubLogo className="size-4" />
-          </div>
-          <div className="flex flex-col">
-            <div className="text-sidebar-foreground text-sm font-medium">
-              Zola is open source
-            </div>
-            <div className="text-sidebar-foreground/70 text-xs">
-              Star the repo on GitHub!
-            </div>
-          </div>
-        </a>
-      </SidebarFooter>
     </Sidebar>
   )
 }

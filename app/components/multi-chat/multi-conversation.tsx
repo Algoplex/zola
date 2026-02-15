@@ -10,7 +10,7 @@ import { ExtendedMessageAISDK } from "@/lib/chat-store/messages/api"
 import { getModelInfo } from "@/lib/models"
 import { PROVIDERS } from "@/lib/providers"
 import { cn } from "@/lib/utils"
-import { Message as MessageType } from "@ai-sdk/react"
+import { UIMessage as MessageType } from "@ai-sdk/react"
 import { useEffect, useState } from "react"
 import { Message } from "../chat/message"
 
@@ -25,6 +25,12 @@ type GroupedMessage = {
   onDelete: (model: string, id: string) => void
   onEdit: (model: string, id: string, newText: string) => void
   onReload: (model: string) => void
+}
+
+// Helper to extract text from UIMessage parts
+const getTextContent = (msg: MessageType): string => {
+  const textPart = msg.parts?.find((p) => p.type === "text")
+  return textPart?.text || ""
 }
 
 type MultiModelConversationProps = {
@@ -64,10 +70,9 @@ function ResponseCard({ response, group }: ResponseCardProps) {
             variant="assistant"
             parts={
               response.message.parts || [
-                { type: "text", text: response.message.content },
+                { type: "text", text: getTextContent(response.message) },
               ]
             }
-            attachments={response.message.experimental_attachments}
             onDelete={() => group.onDelete(response.model, response.message.id)}
             onEdit={(id, newText) => group.onEdit(response.model, id, newText)}
             onReload={() => group.onReload(response.model)}
@@ -76,7 +81,7 @@ function ResponseCard({ response, group }: ResponseCardProps) {
             hasScrollAnchor={false}
             className="bg-transparent p-0 px-0"
           >
-            {response.message.content}
+            {getTextContent(response.message)}
           </Message>
         ) : response.isLoading ? (
           <div className="space-y-2">
@@ -139,10 +144,9 @@ export function MultiModelConversation({
                         variant="user"
                         parts={
                           group.userMessage.parts || [
-                            { type: "text", text: group.userMessage.content },
+                            { type: "text", text: getTextContent(group.userMessage) },
                           ]
                         }
-                        attachments={group.userMessage.experimental_attachments}
                         onDelete={() => {}}
                         onEdit={() => {}}
                         onReload={() => {}}
@@ -152,10 +156,9 @@ export function MultiModelConversation({
                             .message_group_id ?? null
                         }
                       >
-                        {group.userMessage.content}
+                        {getTextContent(group.userMessage)}
                       </Message>
                     </div>
-
                     <div
                       className={cn(
                         "mx-auto w-full",

@@ -12,30 +12,45 @@ import { useUserPreferences } from "@/lib/user-preference-store/provider"
 import { useUser } from "@/lib/user-store/provider"
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "motion/react"
-import dynamic from "next/dynamic"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useCallback, useMemo, useState } from "react"
 import { useChatCore } from "./use-chat-core"
 import { useChatOperations } from "./use-chat-operations"
-import { useFileUpload } from "./use-file-upload"
 
-const FeedbackWidget = dynamic(
-  () => import("./feedback-widget").then((mod) => mod.FeedbackWidget),
-  { ssr: false }
-)
-
-const DialogAuth = dynamic(
-  () => import("./dialog-auth").then((mod) => mod.DialogAuth),
-  { ssr: false }
-)
+// Temporary stub for file upload - can be re-added later
+const useFileUpload = () => {
+  const [files, setFiles] = useState<File[]>([])
+  const handleFileUpload = (newFiles: File[]) =>
+    setFiles((prev) => [...prev, ...newFiles])
+  const handleFileRemove = (file: File) =>
+    setFiles((prev) => prev.filter((f) => f !== file))
+  const handleFileUploads = async () => {
+    files.length = 0
+    return []
+  }
+  const createOptimisticAttachments = (files: File[]) =>
+    files.map((file) => ({ name: file.name, contentType: file.type, url: "" }))
+  const cleanupOptimisticAttachments = () => {}
+  return {
+    files,
+    setFiles,
+    handleFileUpload,
+    handleFileRemove,
+    handleFileUploads,
+    createOptimisticAttachments,
+    cleanupOptimisticAttachments,
+  }
+}
 
 export function Chat() {
+  const router = useRouter()
   const { chatId } = useChatSession()
   const {
     createNewChat,
     getChatById,
     updateChatModel,
     bumpChat,
+    updateTitle,
     isLoading: isChatsLoading,
   } = useChats()
 
@@ -44,37 +59,35 @@ export function Chat() {
     [chatId, getChatById]
   )
 
-  const { messages: initialMessages, cacheAndAddMessage } = useMessages()
+  const {
+    messages: initialMessages,
+    cacheAndAddMessage,
+    saveAllMessages,
+  } = useMessages()
   const { user } = useUser()
   const { preferences } = useUserPreferences()
   const { draftValue, clearDraft } = useChatDraft(chatId)
-
-  // File upload functionality
   const {
     files,
     setFiles,
+    handleFileUpload,
+    handleFileRemove,
     handleFileUploads,
     createOptimisticAttachments,
     cleanupOptimisticAttachments,
-    handleFileUpload,
-    handleFileRemove,
   } = useFileUpload()
 
   // Model selection
   const { selectedModel, handleModelChange } = useModel({
     currentChat: currentChat || null,
-    user,
+    user: null,
     updateChatModel,
     chatId,
   })
 
-  // State to pass between hooks
-  const [hasDialogAuth, setHasDialogAuth] = useState(false)
-  const isAuthenticated = useMemo(() => !!user?.id, [user?.id])
-  const systemPrompt = useMemo(
-    () => user?.system_prompt || SYSTEM_PROMPT_DEFAULT,
-    [user?.system_prompt]
-  )
+  // No auth - always authenticated in the sense that we have a session
+  const isAuthenticated = true
+  const systemPrompt = SYSTEM_PROMPT_DEFAULT
 
   // New state for quoted text
   const [quotedText, setQuotedText] = useState<{
@@ -89,18 +102,24 @@ export function Chat() {
   )
 
   // Chat operations (utils + handlers) - created first
-  const { checkLimitsAndNotify, ensureChatExists, handleDelete } =
-    useChatOperations({
-      isAuthenticated,
-      chatId,
-      messages: initialMessages,
-      selectedModel,
-      systemPrompt,
-      createNewChat,
-      setHasDialogAuth,
-      setMessages: () => {},
-      setInput: () => {},
-    })
+  const {
+    checkLimitsAndNotify,
+    ensureChatExists,
+    handleDelete,
+    precreateChat,
+  } = useChatOperations({
+    isAuthenticated,
+    chatId,
+    messages: initialMessages,
+    selectedModel,
+    systemPrompt,
+    userId: user?.id,
+    updateTitle,
+    createNewChat,
+    setHasDialogAuth: () => {},
+    setMessages: () => {},
+    setInput: () => {},
+  })
 
   // Core chat functionality (initialization + state + actions)
   const {
@@ -120,7 +139,8 @@ export function Chat() {
   } = useChatCore({
     initialMessages,
     draftValue,
-    cacheAndAddMessage,
+    cacheAndAddMessage: cacheAndAddMessage as any,
+    saveAllMessages: saveAllMessages as any,
     chatId,
     user,
     files,
@@ -133,6 +153,7 @@ export function Chat() {
     selectedModel,
     clearDraft,
     bumpChat,
+    precreateChat,
   })
 
   // Memoize the conversation props to prevent unnecessary rerenders
@@ -165,6 +186,7 @@ export function Chat() {
       onValueChange: handleInputChange,
       onSend: submit,
       isSubmitting,
+      hasMessages: messages.length > 0,
       files,
       onFileUpload: handleFileUpload,
       onFileRemove: handleFileRemove,
@@ -185,6 +207,7 @@ export function Chat() {
       handleInputChange,
       submit,
       isSubmitting,
+      messages.length,
       files,
       handleFileUpload,
       handleFileRemove,
@@ -213,7 +236,8 @@ export function Chat() {
     messages.length === 0 &&
     !hasSentFirstMessageRef.current // Don't redirect if we've already sent a message in this session
   ) {
-    return redirect("/")
+    router.replace("/")
+    return null
   }
 
   const showOnboarding = !chatId && messages.length === 0
@@ -224,8 +248,6 @@ export function Chat() {
         "@container/main relative flex h-full flex-col items-center justify-end md:justify-center"
       )}
     >
-      <DialogAuth open={hasDialogAuth} setOpen={setHasDialogAuth} />
-
       <AnimatePresence initial={false} mode="popLayout">
         {showOnboarding ? (
           <motion.div
@@ -243,7 +265,7 @@ export function Chat() {
             }}
           >
             <h1 className="mb-6 text-3xl font-medium tracking-tight">
-              What&apos;s on your mind?
+              What can I help you with?
             </h1>
           </motion.div>
         ) : (
@@ -265,8 +287,6 @@ export function Chat() {
       >
         <ChatInput {...chatInputProps} />
       </motion.div>
-
-      <FeedbackWidget authUserId={user?.id} />
     </div>
   )
 }

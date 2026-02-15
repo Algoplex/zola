@@ -6,7 +6,7 @@ import {
 } from "@/components/prompt-kit/message"
 import { useUserPreferences } from "@/lib/user-preference-store/provider"
 import { cn } from "@/lib/utils"
-import type { Message as MessageAISDK } from "@ai-sdk/react"
+import { type UIMessage } from "@ai-sdk/react"
 import { ArrowClockwise, Check, Copy } from "@phosphor-icons/react"
 import { useCallback, useRef } from "react"
 import { getSources } from "./get-sources"
@@ -24,7 +24,7 @@ type MessageAssistantProps = {
   copied?: boolean
   copyToClipboard?: () => void
   onReload?: () => void
-  parts?: MessageAISDK["parts"]
+  parts?: UIMessage["parts"]
   status?: "streaming" | "ready" | "submitted" | "error"
   className?: string
   messageId: string
@@ -46,29 +46,51 @@ export function MessageAssistant({
 }: MessageAssistantProps) {
   const { preferences } = useUserPreferences()
   const sources = getSources(parts)
-  const toolInvocationParts = parts?.filter(
-    (part) => part.type === "tool-invocation"
-  )
+
+  // Filter for tool invocation parts (static tools have type like "tool-toolName", dynamic has "dynamic-tool")
+  // Transform to backward-compatible format with toolInvocation wrapper for v5-style access
+  const toolInvocationParts = parts
+    ?.filter(
+      (part) => part.type.startsWith("tool-") || part.type === "dynamic-tool"
+    )
+    .map((part) => ({ toolInvocation: part as any }))
+
+  // Find reasoning part - in v6 it uses "text" property instead of "reasoningText"
   const reasoningParts = parts?.find((part) => part.type === "reasoning")
   const contentNullOrEmpty = children === null || children === ""
   const isLastStreaming = status === "streaming" && isLast
-  const searchImageResults =
-    parts
-      ?.filter(
-        (part) =>
-          part.type === "tool-invocation" &&
-          part.toolInvocation?.state === "result" &&
-          part.toolInvocation?.toolName === "imageSearch" &&
-          part.toolInvocation?.result?.content?.[0]?.type === "images"
-      )
-      .flatMap((part) =>
-        part.type === "tool-invocation" &&
+
+  // For search images, we need to handle both static and dynamic tool types
+  const searchImageResults = (parts as any)
+    ?.filter(
+      (part: any) =>
+        (part.type.startsWith("tool-") || part.type === "dynamic-tool") &&
+        "toolInvocation" in part &&
         part.toolInvocation?.state === "result" &&
-        part.toolInvocation?.toolName === "imageSearch" &&
-        part.toolInvocation?.result?.content?.[0]?.type === "images"
-          ? (part.toolInvocation?.result?.content?.[0]?.results ?? [])
-          : []
-      ) ?? []
+        part.toolInvocation?.toolName === "imageSearch"
+    )
+    .flatMap((part: any) => {
+        if (
+          "toolInvocation" in part &&
+          part.toolInvocation?.state === "result" &&
+          part.toolInvocation?.toolName === "imageSearch"
+        ) {
+          const result = part.toolInvocation.result
+          if (
+            result &&
+            typeof result === "object" &&
+            "content" in result &&
+            Array.isArray(result.content) &&
+            result.content[0] &&
+            typeof result.content[0] === "object" &&
+            "type" in result.content[0] &&
+            result.content[0].type === "images"
+          ) {
+            return (result.content[0] as { results?: unknown[] }).results ?? []
+          }
+        }
+        return []
+      }) ?? []
 
   const isQuoteEnabled = !preferences.multiModelEnabled
   const messageRef = useRef<HTMLDivElement>(null)
@@ -99,9 +121,9 @@ export function MessageAssistant({
         )}
         {...(isQuoteEnabled && { "data-message-id": messageId })}
       >
-        {reasoningParts && reasoningParts.reasoning && (
+        {reasoningParts && reasoningParts.text && (
           <Reasoning
-            reasoning={reasoningParts.reasoning}
+            reasoningText={reasoningParts.text}
             isStreaming={status === "streaming"}
           />
         )}
@@ -130,7 +152,7 @@ export function MessageAssistant({
 
         {sources && sources.length > 0 && <SourcesList sources={sources} />}
 
-        {Boolean(isLastStreaming || contentNullOrEmpty) ? null : (
+        {isLastStreaming || contentNullOrEmpty ? null : (
           <MessageActions
             className={cn(
               "-ml-2 flex gap-0 opacity-0 transition-opacity group-hover:opacity-100"
