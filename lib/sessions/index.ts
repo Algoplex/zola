@@ -1,6 +1,12 @@
-import { cookies } from "next/headers"
-import { db, sessions, type Session, type NewSession, deviceTypeEnum } from "@/lib/db"
+import {
+  db,
+  deviceTypeEnum,
+  sessions,
+  type NewSession,
+  type Session,
+} from "@/lib/db"
 import { eq } from "drizzle-orm"
+import { cookies } from "next/headers"
 
 // Type for deviceType enum values
 type DeviceType = "desktop" | "mobile" | "tablet" | "bot" | "unknown"
@@ -230,7 +236,7 @@ export async function getOrCreateSession(
   await withRetry(async () => {
     return await db.insert(sessions).values(newSession)
   })
-  setSessionCookie(sessionId)
+  await setSessionCookie(sessionId)
 
   return newSession as Session
 }

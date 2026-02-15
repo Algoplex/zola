@@ -13,7 +13,6 @@ import { UserProvider } from "@/lib/user-store/provider"
 import { ThemeProvider } from "next-themes"
 import Script from "next/script"
 import { LayoutClient } from "./layout-client"
-import { getOrCreateSession } from "@/lib/sessions"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,9 +37,6 @@ export default async function RootLayout({
 }>) {
   const isDev = process.env.NODE_ENV === "development"
   const isOfficialDeployment = process.env.ZOLA_OFFICIAL === "true"
-
-  // Initialize session for this visitor
-  await getOrCreateSession()
 
   return (
     <html lang="en" suppressHydrationWarning>
