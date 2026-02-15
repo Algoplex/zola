@@ -23,8 +23,16 @@ export const MODEL_DEFAULT = "gemini-3-flash-preview"
 export const APP_NAME = "ChatGPT 5.2"
 export const APP_DOMAIN = "https://chatgpt.eu.com"
 
-export const SUGGESTIONS = [
-/*  {
+export type SuggestionGroup = {
+  label: string
+  highlight: string
+  prompt: string
+  items: string[]
+  icon: React.ComponentType<{ className?: string }>
+}
+
+export const SUGGESTIONS: SuggestionGroup[] = [
+  /*  {
     label: "Summary",
     highlight: "Summarize",
     prompt: `Summarize`,
